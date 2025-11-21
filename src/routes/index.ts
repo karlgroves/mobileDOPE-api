@@ -3,6 +3,7 @@ import authRoutes from './auth.routes';
 import rifleRoutes from './rifles.routes';
 import ammoRoutes from './ammo.routes';
 import dopeRoutes from './dope.routes';
+import environmentRoutes from './environment.routes';
 
 /**
  * Routes Index
@@ -17,6 +18,7 @@ router.use('/v1/auth', authRoutes);
 router.use('/v1/rifles', rifleRoutes);
 router.use('/v1/ammo', ammoRoutes);
 router.use('/v1/dope', dopeRoutes);
+router.use('/v1/environment', environmentRoutes);
 
 // Health check for API routes
 router.get('/health', (_req, res) => {
@@ -37,7 +39,7 @@ router.get('/', (_req, res) => {
       rifles: '/api/v1/rifles',
       ammo: '/api/v1/ammo',
       dope: '/api/v1/dope',
-      environment: '/api/v1/environment (coming soon)',
+      environment: '/api/v1/environment',
     },
     documentation: '/api-docs (coming soon)',
   });
