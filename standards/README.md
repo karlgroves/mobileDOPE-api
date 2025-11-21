@@ -56,7 +56,7 @@ mobileDOPE/
 - **Runtime**: Node.js (Latest LTS)
 - **Framework**: Express.js (RESTful API)
 - **Language**: TypeScript (strict mode)
-- **Database**: MySQL 8.4 LTS (supported until April 2032)
+- **Database**: MySQL 9.x Innovation Release (9.1+)
 - **ORM**: Sequelize
 - **Authentication**: JWT (JSON Web Tokens)
 - **Containerization**: Docker & Docker Compose

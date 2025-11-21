@@ -28,10 +28,12 @@
 
 - **Backend Framework**: Node.js with Express.js (RESTful API)
 - **Language**: TypeScript with strict mode enabled
-- **Database**: MySQL 8.4 LTS (supported until April 2032) with Sequelize ORM
-  - **Note**: MySQL 9.0.0 should be avoided (use 9.0.1+)
-  - **Recommended**: MySQL 8.4 LTS for production stability
-  - **Deployment Database**: Digital Ocean Managed MySQL Database
+- **Database**: MySQL 9.x Innovation Release with Sequelize ORM
+  - **Version**: MySQL 9.1+ (latest stable innovation release)
+  - **Features Used**: Generated columns, INVISIBLE columns, enhanced JSON indexing, ngram FULLTEXT parser
+  - **Collation**: utf8mb4_0900_ai_ci (optimized for performance)
+  - **Backward Compatibility**: Schema compatible with MySQL 8.0.17+ but optimized for 9.x
+  - **Deployment Database**: Digital Ocean Managed MySQL Database (configure for MySQL 9.x)
 - **Containerization**: Docker and Docker Compose
   - Development environment runs in Docker containers
   - Production deployment via Docker images

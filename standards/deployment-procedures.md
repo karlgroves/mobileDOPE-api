@@ -269,7 +269,7 @@ The Mobile DOPE API uses Digital Ocean App Platform for production deployment. T
 
 - **Managed Infrastructure**: Automatic scaling, load balancing, and SSL/TLS
 - **Container-Based Deployment**: Deploy from Docker images or Dockerfile
-- **Managed Database**: MySQL 8.4 with automatic backups and failover
+- **Managed Database**: MySQL 9.x with automatic backups and failover
 - **Environment Variables**: Secure secret management
 - **GitHub Integration**: Automatic deployments on push to main/develop
 
@@ -608,7 +608,7 @@ services:
 
   # MySQL Database
   db:
-    image: mysql:8.4
+    image: mysql:9.1
     container_name: mobile-dope-db-dev
     ports:
       - "3306:3306"
@@ -720,7 +720,7 @@ services:
       - mobile-dope-network
 
   db:
-    image: mysql:8.4
+    image: mysql:9.1
     container_name: mobile-dope-db-prod
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
