@@ -150,9 +150,204 @@ See `.env.example` for all available environment variables. Key variables:
 
 ## API Documentation
 
-API documentation will be available at:
-- Development: http://localhost:3000/api-docs
-- Production: https://api.mobiledope.com/api-docs
+### Base URL
+
+- Development: `http://localhost:3000/api`
+- Production: `https://api.mobiledope.com/api` (coming soon)
+
+### Authentication
+
+All authenticated endpoints require a Bearer token in the Authorization header:
+
+```bash
+Authorization: Bearer YOUR_ACCESS_TOKEN
+```
+
+### Endpoints
+
+#### Authentication (`/v1/auth`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/v1/auth/register` | Register new user | Public |
+| POST | `/v1/auth/login` | Login user | Public |
+| POST | `/v1/auth/refresh` | Refresh access token | Public |
+| POST | `/v1/auth/verify-email` | Verify email with token | Public |
+| POST | `/v1/auth/forgot-password` | Request password reset | Public |
+| POST | `/v1/auth/reset-password` | Reset password | Public |
+| POST | `/v1/auth/logout` | Logout user | Private |
+| GET | `/v1/auth/me` | Get current user | Private |
+
+#### Rifle Profiles (`/v1/rifles`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/v1/rifles` | List rifles | Private |
+| GET | `/v1/rifles/:id` | Get rifle | Private |
+| GET | `/v1/rifles/:id/stats` | Get rifle stats | Private |
+| POST | `/v1/rifles` | Create rifle | Private |
+| PUT | `/v1/rifles/:id` | Update rifle | Private |
+| DELETE | `/v1/rifles/:id` | Delete rifle | Private |
+
+**Query Parameters** (List):
+- `page` (default: 1) - Page number
+- `limit` (default: 10, max: 100) - Items per page
+- `caliber` - Filter by caliber
+- `search` - Search in name/caliber
+
+#### Ammunition Profiles (`/v1/ammo`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/v1/ammo` | List ammo | Private |
+| GET | `/v1/ammo/:id` | Get ammo | Private |
+| GET | `/v1/ammo/:id/stats` | Get ammo stats | Private |
+| POST | `/v1/ammo` | Create ammo | Private |
+| PUT | `/v1/ammo/:id` | Update ammo | Private |
+| DELETE | `/v1/ammo/:id` | Delete ammo | Private |
+
+**Query Parameters** (List):
+- `page` - Page number
+- `limit` - Items per page
+- `rifle_id` - Filter by rifle
+- `manufacturer` - Filter by manufacturer
+- `search` - Search in name/manufacturer/bullet_type
+
+#### DOPE Logs (`/v1/dope`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/v1/dope` | List logs | Private |
+| GET | `/v1/dope/:id` | Get log | Private |
+| GET | `/v1/dope/card` | Get DOPE card | Private |
+| POST | `/v1/dope` | Create log | Private |
+| PUT | `/v1/dope/:id` | Update log | Private |
+| DELETE | `/v1/dope/:id` | Delete log | Private |
+
+**Query Parameters** (List):
+- `page` - Page number
+- `limit` - Items per page
+- `rifle_id` - Filter by rifle
+- `ammo_id` - Filter by ammo
+- `distance_min` - Minimum distance (yards)
+- `distance_max` - Maximum distance (yards)
+- `target_type` - Filter by type (steel/paper/vital_zone/other)
+- `sort` - Sort order (distance_asc/distance_desc/accuracy/date)
+
+**Query Parameters** (DOPE Card):
+- `rifle_id` (required) - Rifle ID
+- `ammo_id` (required) - Ammo ID
+
+### Example Requests
+
+#### Register
+
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "shooter@example.com",
+    "password": "SecurePass123",
+    "name": "John Shooter"
+  }'
+```
+
+#### Login
+
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "shooter@example.com",
+    "password": "SecurePass123"
+  }'
+```
+
+#### Create Rifle
+
+```bash
+curl -X POST http://localhost:3000/api/v1/rifles \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "name": "Precision Rifle",
+    "caliber": ".308 Win",
+    "barrel_length": 24,
+    "twist_rate": "1:10",
+    "zero_distance": 100,
+    "optic_manufacturer": "Vortex",
+    "optic_model": "Razor HD Gen II",
+    "reticle_type": "EBR-2C MRAD",
+    "click_value_type": "MIL",
+    "click_value": 0.1,
+    "scope_height": 1.5
+  }'
+```
+
+#### Get DOPE Card
+
+```bash
+curl -X GET "http://localhost:3000/api/v1/dope/card?rifle_id=1&ammo_id=1" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Response Format
+
+All responses follow this format:
+
+**Success:**
+```json
+{
+  "success": true,
+  "data": {},
+  "timestamp": "2025-01-21T10:00:00.000Z"
+}
+```
+
+**Paginated:**
+```json
+{
+  "success": true,
+  "data": [],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 42,
+    "totalPages": 5
+  },
+  "timestamp": "2025-01-21T10:00:00.000Z"
+}
+```
+
+**Error:**
+```json
+{
+  "success": false,
+  "message": "Error message",
+  "errors": [
+    {
+      "field": "email",
+      "message": "Valid email is required"
+    }
+  ],
+  "timestamp": "2025-01-21T10:00:00.000Z"
+}
+```
+
+### HTTP Status Codes
+
+- `200` - OK
+- `201` - Created
+- `204` - No Content (Delete)
+- `400` - Bad Request (Validation Error)
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `409` - Conflict
+- `429` - Too Many Requests
+- `500` - Internal Server Error
+
+Interactive API documentation: `http://localhost:3000/api` (coming soon)
 
 ## Development Standards
 
