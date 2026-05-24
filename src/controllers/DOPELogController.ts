@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
+import { Op, WhereOptions, Order } from 'sequelize';
 import DOPELog from '../models/DOPELog';
 import RifleProfile from '../models/RifleProfile';
 import AmmoProfile from '../models/AmmoProfile';
 import EnvironmentSnapshot from '../models/EnvironmentSnapshot';
 import { NotFoundError, ValidationError } from '../utils/errors';
 import { sendSuccess, sendCreated, sendNoContent, sendPaginated } from '../utils/response';
-import { Op } from 'sequelize';
 
 /**
  * DOPE Log Controller
@@ -13,43 +13,68 @@ import { Op } from 'sequelize';
  * Handles CRUD operations for DOPE (Data On Previous Engagements) logs.
  */
 
+interface DOPELogBody {
+  rifle_id: number;
+  ammo_id: number;
+  environment_id: number;
+  distance: number;
+  distance_unit: 'yards' | 'meters';
+  distance_yards?: number;
+  elevation_correction: number;
+  windage_correction: number;
+  correction_unit: 'MIL' | 'MOA';
+  target_type: 'steel' | 'paper' | 'vital_zone' | 'other';
+  group_size?: number;
+  hit_count?: number;
+  shot_count?: number;
+  hit_percentage?: number;
+  notes?: string;
+  timestamp?: Date;
+}
+
 export class DOPELogController {
   /**
    * Get all DOPE logs for authenticated user
    * GET /api/v1/dope
    */
   async getAll(req: Request, res: Response) {
-    const userId = (req as any).userId;
-    const { page, limit, offset } = (req as any).pagination;
-    const { rifle_id, ammo_id, distance_min, distance_max, target_type, sort } = req.query;
+    const userId = req.userId;
+    const { page, limit, offset } = req.pagination!;
+    const rifle_id = req.query.rifle_id as string | undefined;
+    const ammo_id = req.query.ammo_id as string | undefined;
+    const distance_min = req.query.distance_min as string | undefined;
+    const distance_max = req.query.distance_max as string | undefined;
+    const target_type = req.query.target_type as string | undefined;
+    const sort = req.query.sort as string | undefined;
 
-    // Build query
-    const where: any = { user_id: userId };
+    // Build query with explicit type casting for all query params
+    const where: Record<string | symbol, unknown> = { user_id: userId };
 
     if (rifle_id) {
-      where.rifle_id = rifle_id;
+      where.rifle_id = parseInt(rifle_id, 10);
     }
 
     if (ammo_id) {
-      where.ammo_id = ammo_id;
+      where.ammo_id = parseInt(ammo_id, 10);
     }
 
     if (distance_min || distance_max) {
-      where.distance_yards = {};
+      const distanceRange: Record<symbol, number> = {};
       if (distance_min) {
-        where.distance_yards[Op.gte] = distance_min;
+        distanceRange[Op.gte] = parseFloat(distance_min);
       }
       if (distance_max) {
-        where.distance_yards[Op.lte] = distance_max;
+        distanceRange[Op.lte] = parseFloat(distance_max);
       }
+      where.distance_yards = distanceRange;
     }
 
     if (target_type) {
-      where.target_type = target_type;
+      where.target_type = String(target_type);
     }
 
     // Determine sort order
-    let order: any = [['timestamp', 'DESC']];
+    let order: Order = [['timestamp', 'DESC']];
     if (sort === 'distance_asc') {
       order = [['distance_yards', 'ASC']];
     } else if (sort === 'distance_desc') {
@@ -60,7 +85,7 @@ export class DOPELogController {
 
     // Get logs with pagination and includes
     const { count, rows } = await DOPELog.findAndCountAll({
-      where,
+      where: where as WhereOptions,
       limit,
       offset,
       order,
@@ -91,8 +116,8 @@ export class DOPELogController {
    * GET /api/v1/dope/:id
    */
   async getById(req: Request, res: Response) {
-    const userId = (req as any).userId;
-    const dopeId = (req as any).idParsed;
+    const userId = req.userId;
+    const dopeId = req.idParsed;
 
     const dopeLog = await DOPELog.findOne({
       where: {
@@ -127,12 +152,13 @@ export class DOPELogController {
    * POST /api/v1/dope
    */
   async create(req: Request, res: Response) {
-    const userId = (req as any).userId;
+    const userId = req.userId;
+    const body = req.body as DOPELogBody;
 
     // Verify rifle belongs to user
     const rifle = await RifleProfile.findOne({
       where: {
-        id: req.body.rifle_id,
+        id: body.rifle_id,
         user_id: userId,
       },
     });
@@ -144,7 +170,7 @@ export class DOPELogController {
     // Verify ammo belongs to user
     const ammo = await AmmoProfile.findOne({
       where: {
-        id: req.body.ammo_id,
+        id: body.ammo_id,
         user_id: userId,
       },
     });
@@ -156,19 +182,54 @@ export class DOPELogController {
     // Verify environment belongs to user
     const environment = await EnvironmentSnapshot.findOne({
       where: {
-        id: req.body.environment_id,
+        id: body.environment_id,
         user_id: userId,
       },
     });
 
     if (!environment) {
-      throw new ValidationError('Invalid environment_id: Environment not found or does not belong to you');
+      throw new ValidationError(
+        'Invalid environment_id: Environment not found or does not belong to you',
+      );
     }
 
-    // Create DOPE log
+    // Create DOPE log with allowed fields only
+    const {
+      rifle_id,
+      ammo_id,
+      environment_id,
+      distance,
+      distance_unit,
+      distance_yards,
+      elevation_correction,
+      windage_correction,
+      correction_unit,
+      target_type,
+      group_size,
+      hit_count,
+      shot_count,
+      hit_percentage,
+      notes,
+      timestamp,
+    } = body;
     const dopeLog = await DOPELog.create({
-      ...req.body,
-      user_id: userId,
+      rifle_id,
+      ammo_id,
+      environment_id,
+      distance,
+      distance_unit,
+      distance_yards,
+      elevation_correction,
+      windage_correction,
+      correction_unit,
+      target_type,
+      group_size,
+      hit_count,
+      shot_count,
+      hit_percentage,
+      notes,
+      timestamp,
+      user_id: userId!,
     });
 
     // Load relationships
@@ -200,8 +261,9 @@ export class DOPELogController {
    * PUT /api/v1/dope/:id
    */
   async update(req: Request, res: Response) {
-    const userId = (req as any).userId;
-    const dopeId = (req as any).idParsed;
+    const userId = req.userId;
+    const dopeId = req.idParsed;
+    const body = req.body as Partial<DOPELogBody>;
 
     const dopeLog = await DOPELog.findOne({
       where: {
@@ -215,35 +277,70 @@ export class DOPELogController {
     }
 
     // Validate any changed foreign keys
-    if (req.body.rifle_id && req.body.rifle_id !== dopeLog.rifle_id) {
+    if (body.rifle_id && body.rifle_id !== dopeLog.rifle_id) {
       const rifle = await RifleProfile.findOne({
-        where: { id: req.body.rifle_id, user_id: userId },
+        where: { id: body.rifle_id, user_id: userId },
       });
       if (!rifle) {
         throw new ValidationError('Invalid rifle_id');
       }
     }
 
-    if (req.body.ammo_id && req.body.ammo_id !== dopeLog.ammo_id) {
+    if (body.ammo_id && body.ammo_id !== dopeLog.ammo_id) {
       const ammo = await AmmoProfile.findOne({
-        where: { id: req.body.ammo_id, user_id: userId },
+        where: { id: body.ammo_id, user_id: userId },
       });
       if (!ammo) {
         throw new ValidationError('Invalid ammo_id');
       }
     }
 
-    if (req.body.environment_id && req.body.environment_id !== dopeLog.environment_id) {
+    if (body.environment_id && body.environment_id !== dopeLog.environment_id) {
       const environment = await EnvironmentSnapshot.findOne({
-        where: { id: req.body.environment_id, user_id: userId },
+        where: { id: body.environment_id, user_id: userId },
       });
       if (!environment) {
         throw new ValidationError('Invalid environment_id');
       }
     }
 
-    // Update log
-    await dopeLog.update(req.body);
+    // Update log with allowed fields only
+    const {
+      rifle_id,
+      ammo_id,
+      environment_id,
+      distance,
+      distance_unit,
+      distance_yards,
+      elevation_correction,
+      windage_correction,
+      correction_unit,
+      target_type,
+      group_size,
+      hit_count,
+      shot_count,
+      hit_percentage,
+      notes,
+      timestamp,
+    } = body;
+    await dopeLog.update({
+      rifle_id,
+      ammo_id,
+      environment_id,
+      distance,
+      distance_unit,
+      distance_yards,
+      elevation_correction,
+      windage_correction,
+      correction_unit,
+      target_type,
+      group_size,
+      hit_count,
+      shot_count,
+      hit_percentage,
+      notes,
+      timestamp,
+    });
 
     // Reload with relationships
     await dopeLog.reload({
@@ -273,8 +370,8 @@ export class DOPELogController {
    * DELETE /api/v1/dope/:id
    */
   async delete(req: Request, res: Response) {
-    const userId = (req as any).userId;
-    const dopeId = (req as any).idParsed;
+    const userId = req.userId;
+    const dopeId = req.idParsed;
 
     const dopeLog = await DOPELog.findOne({
       where: {
@@ -297,19 +394,22 @@ export class DOPELogController {
    * GET /api/v1/dope/card
    */
   async getCard(req: Request, res: Response) {
-    const userId = (req as any).userId;
+    const userId = req.userId;
     const { rifle_id, ammo_id } = req.query;
 
     if (!rifle_id || !ammo_id) {
       throw new ValidationError('rifle_id and ammo_id are required');
     }
 
+    const parsedRifleId = parseInt(rifle_id as string, 10);
+    const parsedAmmoId = parseInt(ammo_id as string, 10);
+
     // Verify ownership
     const rifle = await RifleProfile.findOne({
-      where: { id: rifle_id, user_id: userId },
+      where: { id: parsedRifleId, user_id: userId },
     });
     const ammo = await AmmoProfile.findOne({
-      where: { id: ammo_id, user_id: userId },
+      where: { id: parsedAmmoId, user_id: userId },
     });
 
     if (!rifle || !ammo) {
@@ -320,8 +420,8 @@ export class DOPELogController {
     const logs = await DOPELog.findAll({
       where: {
         user_id: userId,
-        rifle_id,
-        ammo_id,
+        rifle_id: parsedRifleId,
+        ammo_id: parsedAmmoId,
       },
       order: [['distance_yards', 'ASC']],
       attributes: [

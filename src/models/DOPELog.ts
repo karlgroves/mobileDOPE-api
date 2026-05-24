@@ -33,8 +33,12 @@ interface DOPELogAttributes {
   timestamp?: Date;
 }
 
-interface DOPELogCreationAttributes extends Optional<DOPELogAttributes, 'id' | 'distance_yards' | 'hit_percentage' | 'timestamp'> {}
+type DOPELogCreationAttributes = Optional<
+  DOPELogAttributes,
+  'id' | 'distance_yards' | 'hit_percentage' | 'timestamp'
+>;
 
+// prettier-ignore
 class DOPELog extends Model<DOPELogAttributes, DOPELogCreationAttributes> implements DOPELogAttributes {
   public id!: number;
   public user_id!: number;
@@ -246,7 +250,9 @@ DOPELog.init(
       hitCountValid() {
         if (
           this.hit_count !== null &&
+          this.hit_count !== undefined &&
           this.shot_count !== null &&
+          this.shot_count !== undefined &&
           this.hit_count > this.shot_count
         ) {
           throw new Error('Hit count cannot exceed shot count');
@@ -261,7 +267,7 @@ DOPELog.init(
         }
       },
     },
-  }
+  },
 );
 
 // Define associations

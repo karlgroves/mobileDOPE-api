@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
+import rateLimit from 'express-rate-limit';
 import AuthController from '../controllers/AuthController';
 import { validate } from '../middlewares/validation';
 import { authenticate } from '../middlewares/auth';
@@ -13,6 +14,31 @@ import { asyncHandler } from '../middlewares/errorHandler';
 
 const router = Router();
 
+// Strict rate limiting for auth endpoints
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many login attempts. Please try again later.' },
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // 3 registrations per hour per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many registration attempts. Please try again later.' },
+});
+
+const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // 3 reset requests per hour per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many password reset requests. Please try again later.' },
+});
+
 /**
  * @route   POST /api/v1/auth/register
  * @desc    Register a new user
@@ -20,14 +46,12 @@ const router = Router();
  */
 router.post(
   '/register',
+  registerLimiter,
   validate([
-    body('email')
-      .isEmail()
-      .normalizeEmail()
-      .withMessage('Valid email is required'),
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
     body('password')
-      .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters')
+      .isLength({ min: 8, max: 128 })
+      .withMessage('Password must be between 8 and 128 characters')
       .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
       .withMessage('Password must contain uppercase, lowercase, and number'),
     body('name')
@@ -36,7 +60,7 @@ router.post(
       .isLength({ min: 2, max: 255 })
       .withMessage('Name must be between 2 and 255 characters'),
   ]),
-  asyncHandler(AuthController.register.bind(AuthController))
+  asyncHandler(AuthController.register.bind(AuthController)),
 );
 
 /**
@@ -46,16 +70,12 @@ router.post(
  */
 router.post(
   '/login',
+  loginLimiter,
   validate([
-    body('email')
-      .isEmail()
-      .normalizeEmail()
-      .withMessage('Valid email is required'),
-    body('password')
-      .notEmpty()
-      .withMessage('Password is required'),
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('password').notEmpty().withMessage('Password is required'),
   ]),
-  asyncHandler(AuthController.login.bind(AuthController))
+  asyncHandler(AuthController.login.bind(AuthController)),
 );
 
 /**
@@ -65,12 +85,8 @@ router.post(
  */
 router.post(
   '/refresh',
-  validate([
-    body('refreshToken')
-      .notEmpty()
-      .withMessage('Refresh token is required'),
-  ]),
-  asyncHandler(AuthController.refresh.bind(AuthController))
+  validate([body('refreshToken').notEmpty().withMessage('Refresh token is required')]),
+  asyncHandler(AuthController.refresh.bind(AuthController)),
 );
 
 /**
@@ -80,12 +96,8 @@ router.post(
  */
 router.post(
   '/verify-email',
-  validate([
-    body('token')
-      .notEmpty()
-      .withMessage('Verification token is required'),
-  ]),
-  asyncHandler(AuthController.verifyEmail.bind(AuthController))
+  validate([body('token').notEmpty().withMessage('Verification token is required')]),
+  asyncHandler(AuthController.verifyEmail.bind(AuthController)),
 );
 
 /**
@@ -95,13 +107,9 @@ router.post(
  */
 router.post(
   '/forgot-password',
-  validate([
-    body('email')
-      .isEmail()
-      .normalizeEmail()
-      .withMessage('Valid email is required'),
-  ]),
-  asyncHandler(AuthController.forgotPassword.bind(AuthController))
+  passwordResetLimiter,
+  validate([body('email').isEmail().normalizeEmail().withMessage('Valid email is required')]),
+  asyncHandler(AuthController.forgotPassword.bind(AuthController)),
 );
 
 /**
@@ -112,16 +120,14 @@ router.post(
 router.post(
   '/reset-password',
   validate([
-    body('token')
-      .notEmpty()
-      .withMessage('Reset token is required'),
+    body('token').notEmpty().withMessage('Reset token is required'),
     body('password')
-      .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters')
+      .isLength({ min: 8, max: 128 })
+      .withMessage('Password must be between 8 and 128 characters')
       .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
       .withMessage('Password must contain uppercase, lowercase, and number'),
   ]),
-  asyncHandler(AuthController.resetPassword.bind(AuthController))
+  asyncHandler(AuthController.resetPassword.bind(AuthController)),
 );
 
 /**
@@ -131,8 +137,8 @@ router.post(
  */
 router.post(
   '/logout',
-  authenticate,
-  asyncHandler(AuthController.logout.bind(AuthController))
+  asyncHandler(authenticate),
+  asyncHandler(AuthController.logout.bind(AuthController)),
 );
 
 /**
@@ -142,8 +148,8 @@ router.post(
  */
 router.get(
   '/me',
-  authenticate,
-  asyncHandler(AuthController.getProfile.bind(AuthController))
+  asyncHandler(authenticate),
+  asyncHandler(AuthController.getProfile.bind(AuthController)),
 );
 
 export default router;

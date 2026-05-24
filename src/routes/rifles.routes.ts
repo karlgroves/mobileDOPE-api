@@ -14,7 +14,7 @@ import { asyncHandler } from '../middlewares/errorHandler';
 const router = Router();
 
 // All rifle routes require authentication
-router.use(authenticate);
+router.use(asyncHandler(authenticate));
 
 /**
  * @route   GET /api/v1/rifles
@@ -28,7 +28,7 @@ router.get(
     query('caliber').optional().trim().isLength({ max: 100 }),
     query('search').optional().trim().isLength({ max: 255 }),
   ]),
-  asyncHandler(RifleProfileController.getAll.bind(RifleProfileController))
+  asyncHandler(RifleProfileController.getAll.bind(RifleProfileController)),
 );
 
 /**
@@ -39,7 +39,7 @@ router.get(
 router.get(
   '/:id',
   validateId('id'),
-  asyncHandler(RifleProfileController.getById.bind(RifleProfileController))
+  asyncHandler(RifleProfileController.getById.bind(RifleProfileController)),
 );
 
 /**
@@ -50,7 +50,7 @@ router.get(
 router.get(
   '/:id/stats',
   validateId('id'),
-  asyncHandler(RifleProfileController.getStats.bind(RifleProfileController))
+  asyncHandler(RifleProfileController.getStats.bind(RifleProfileController)),
 );
 
 /**
@@ -113,7 +113,7 @@ router.post(
       .isLength({ max: 5000 })
       .withMessage('Notes must not exceed 5000 characters'),
   ]),
-  asyncHandler(RifleProfileController.create.bind(RifleProfileController))
+  asyncHandler(RifleProfileController.create.bind(RifleProfileController)),
 );
 
 /**
@@ -131,51 +131,22 @@ router.put(
       .notEmpty()
       .withMessage('Rifle name cannot be empty')
       .isLength({ max: 255 }),
-    body('caliber')
-      .optional()
-      .trim()
-      .notEmpty()
-      .isLength({ max: 100 }),
-    body('barrel_length')
-      .optional()
-      .isFloat({ min: 0.01, max: 50 }),
+    body('caliber').optional().trim().notEmpty().isLength({ max: 100 }),
+    body('barrel_length').optional().isFloat({ min: 0.01, max: 50 }),
     body('twist_rate')
       .optional()
       .trim()
       .matches(/^1:\d+$/),
-    body('zero_distance')
-      .optional()
-      .isFloat({ min: 0.01, max: 1000 }),
-    body('optic_manufacturer')
-      .optional()
-      .trim()
-      .notEmpty()
-      .isLength({ max: 255 }),
-    body('optic_model')
-      .optional()
-      .trim()
-      .notEmpty()
-      .isLength({ max: 255 }),
-    body('reticle_type')
-      .optional()
-      .trim()
-      .notEmpty()
-      .isLength({ max: 100 }),
-    body('click_value_type')
-      .optional()
-      .isIn(['MIL', 'MOA']),
-    body('click_value')
-      .optional()
-      .isFloat({ min: 0.0001, max: 1 }),
-    body('scope_height')
-      .optional()
-      .isFloat({ min: 0.01, max: 10 }),
-    body('notes')
-      .optional()
-      .trim()
-      .isLength({ max: 5000 }),
+    body('zero_distance').optional().isFloat({ min: 0.01, max: 1000 }),
+    body('optic_manufacturer').optional().trim().notEmpty().isLength({ max: 255 }),
+    body('optic_model').optional().trim().notEmpty().isLength({ max: 255 }),
+    body('reticle_type').optional().trim().notEmpty().isLength({ max: 100 }),
+    body('click_value_type').optional().isIn(['MIL', 'MOA']),
+    body('click_value').optional().isFloat({ min: 0.0001, max: 1 }),
+    body('scope_height').optional().isFloat({ min: 0.01, max: 10 }),
+    body('notes').optional().trim().isLength({ max: 5000 }),
   ]),
-  asyncHandler(RifleProfileController.update.bind(RifleProfileController))
+  asyncHandler(RifleProfileController.update.bind(RifleProfileController)),
 );
 
 /**
@@ -186,7 +157,7 @@ router.put(
 router.delete(
   '/:id',
   validateId('id'),
-  asyncHandler(RifleProfileController.delete.bind(RifleProfileController))
+  asyncHandler(RifleProfileController.delete.bind(RifleProfileController)),
 );
 
 export default router;

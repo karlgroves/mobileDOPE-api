@@ -1,4 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
+import crypto from 'crypto';
 import sequelize from '../config/database';
 import bcrypt from 'bcrypt';
 
@@ -22,13 +23,25 @@ interface UserAttributes {
   password_reset_token?: string;
   password_reset_expires?: Date;
   last_login_at?: Date;
+  token_version: number;
   login_count: number; // Invisible column
   row_version: number; // Invisible column
   created_at?: Date;
   updated_at?: Date;
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'uuid' | 'is_active' | 'is_verified' | 'login_count' | 'row_version' | 'created_at' | 'updated_at'> {}
+type UserCreationAttributes = Optional<
+  UserAttributes,
+  | 'id'
+  | 'uuid'
+  | 'is_active'
+  | 'is_verified'
+  | 'token_version'
+  | 'login_count'
+  | 'row_version'
+  | 'created_at'
+  | 'updated_at'
+>;
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: number;
@@ -43,6 +56,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public password_reset_token?: string;
   public password_reset_expires?: Date;
   public last_login_at?: Date;
+  public token_version!: number;
   public login_count!: number;
   public row_version!: number;
   public readonly created_at!: Date;
@@ -73,12 +87,19 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   }
 
   /**
+   * Hash a token with SHA-256 for secure storage
+   */
+  private static hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  /**
    * Generate email verification token
+   * Returns the plaintext token (for email); stores the hash in DB
    */
   public async generateVerificationToken(): Promise<string> {
-    const crypto = require('crypto');
     const token = crypto.randomBytes(32).toString('hex');
-    this.email_verification_token = token;
+    this.email_verification_token = User.hashToken(token);
     this.email_verification_expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     await this.save();
     return token;
@@ -86,11 +107,11 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
 
   /**
    * Generate password reset token
+   * Returns the plaintext token (for email); stores the hash in DB
    */
   public async generatePasswordResetToken(): Promise<string> {
-    const crypto = require('crypto');
     const token = crypto.randomBytes(32).toString('hex');
-    this.password_reset_token = token;
+    this.password_reset_token = User.hashToken(token);
     this.password_reset_expires = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
     await this.save();
     return token;
@@ -106,10 +127,37 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   }
 
   /**
+   * Revoke all existing tokens by incrementing token_version.
+   * Any JWT minted with a lower version will be rejected.
+   */
+  public async revokeAllTokens(): Promise<void> {
+    this.token_version += 1;
+    await this.save();
+  }
+
+  /**
+   * Find user by plaintext reset token (hashes it for DB lookup)
+   */
+  public static async findByResetToken(plainToken: string): Promise<User | null> {
+    return User.findOne({
+      where: { password_reset_token: User.hashToken(plainToken) },
+    });
+  }
+
+  /**
+   * Find user by plaintext verification token (hashes it for DB lookup)
+   */
+  public static async findByVerificationToken(plainToken: string): Promise<User | null> {
+    return User.findOne({
+      where: { email_verification_token: User.hashToken(plainToken) },
+    });
+  }
+
+  /**
    * Get user JSON (exclude sensitive fields)
    */
   public toJSON(): Partial<UserAttributes> {
-    const values = { ...this.get() };
+    const values: Partial<UserAttributes> = { ...this.get() };
     delete values.password_hash;
     delete values.email_verification_token;
     delete values.password_reset_token;
@@ -178,6 +226,12 @@ User.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    token_version: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      defaultValue: 0,
+      comment: 'Incremented to revoke all existing tokens',
+    },
     login_count: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
@@ -221,7 +275,7 @@ User.init(
         user.row_version += 1;
       },
     },
-  }
+  },
 );
 
 export default User;

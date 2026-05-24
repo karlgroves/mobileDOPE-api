@@ -15,7 +15,9 @@ describe('Health Check Endpoints', () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('status', 'healthy');
       expect(response.body).toHaveProperty('timestamp');
-      expect(response.body).toHaveProperty('environment', 'test');
+      // The environment is intentionally omitted from the public health
+      // response to avoid leaking deployment details.
+      expect(response.body).not.toHaveProperty('environment');
     });
   });
 

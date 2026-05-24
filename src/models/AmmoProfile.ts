@@ -29,8 +29,12 @@ interface AmmoProfileAttributes {
   updated_at?: Date;
 }
 
-interface AmmoProfileCreationAttributes extends Optional<AmmoProfileAttributes, 'id' | 'created_at' | 'updated_at'> {}
+type AmmoProfileCreationAttributes = Optional<
+  AmmoProfileAttributes,
+  'id' | 'created_at' | 'updated_at'
+>;
 
+// prettier-ignore
 class AmmoProfile extends Model<AmmoProfileAttributes, AmmoProfileCreationAttributes> implements AmmoProfileAttributes {
   public id!: number;
   public user_id!: number;
@@ -201,12 +205,8 @@ AmmoProfile.init(
     tableName: 'ammo_profiles',
     timestamps: true,
     underscored: true,
-    indexes: [
-      { fields: ['user_id'] },
-      { fields: ['rifle_id'] },
-      { fields: ['manufacturer'] },
-    ],
-  }
+    indexes: [{ fields: ['user_id'] }, { fields: ['rifle_id'] }, { fields: ['manufacturer'] }],
+  },
 );
 
 // Define associations

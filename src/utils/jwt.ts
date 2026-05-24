@@ -6,16 +6,40 @@ import { AuthenticationError } from './errors';
  *
  * Token generation, verification, and refresh token management
  * for JWT-based authentication.
+ *
+ * Uses separate secrets for access and refresh tokens to limit
+ * the blast radius of a compromised token.
  */
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_changeme_in_production';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m'; // Access token: 15 minutes
-const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d'; // Refresh token: 7 days
+function getJwtSecret(type: 'access' | 'refresh'): string {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (type === 'refresh') {
+    const secret = process.env.JWT_REFRESH_SECRET;
+    if (!secret) {
+      if (isProduction) {
+        throw new Error('JWT_REFRESH_SECRET must be set in production');
+      }
+      return 'dev_refresh_secret_DO_NOT_USE_IN_PRODUCTION';
+    }
+    return secret;
+  }
+
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (isProduction) {
+      throw new Error('JWT_SECRET must be set in production');
+    }
+    return 'dev_jwt_secret_DO_NOT_USE_IN_PRODUCTION';
+  }
+  return secret;
+}
 
 export interface JwtPayload {
   userId: number;
   email: string;
   type: 'access' | 'refresh';
+  tokenVersion?: number;
   iat?: number;
   exp?: number;
 }
@@ -23,15 +47,16 @@ export interface JwtPayload {
 /**
  * Generate access token
  */
-export function generateAccessToken(userId: number, email: string): string {
+export function generateAccessToken(userId: number, email: string, tokenVersion = 0): string {
   const payload: JwtPayload = {
     userId,
     email,
     type: 'access',
+    tokenVersion,
   };
 
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
+  return jwt.sign(payload, getJwtSecret('access'), {
+    expiresIn: 900, // 15 minutes in seconds
     issuer: 'mobile-dope-api',
     audience: 'mobile-dope-app',
   });
@@ -40,15 +65,16 @@ export function generateAccessToken(userId: number, email: string): string {
 /**
  * Generate refresh token
  */
-export function generateRefreshToken(userId: number, email: string): string {
+export function generateRefreshToken(userId: number, email: string, tokenVersion = 0): string {
   const payload: JwtPayload = {
     userId,
     email,
     type: 'refresh',
+    tokenVersion,
   };
 
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_REFRESH_EXPIRES_IN,
+  return jwt.sign(payload, getJwtSecret('refresh'), {
+    expiresIn: 604800, // 7 days in seconds
     issuer: 'mobile-dope-api',
     audience: 'mobile-dope-app',
   });
@@ -57,29 +83,30 @@ export function generateRefreshToken(userId: number, email: string): string {
 /**
  * Generate both access and refresh tokens
  */
-export function generateTokenPair(userId: number, email: string) {
+export function generateTokenPair(userId: number, email: string, tokenVersion = 0) {
   return {
-    accessToken: generateAccessToken(userId, email),
-    refreshToken: generateRefreshToken(userId, email),
-    expiresIn: JWT_EXPIRES_IN,
+    accessToken: generateAccessToken(userId, email, tokenVersion),
+    refreshToken: generateRefreshToken(userId, email, tokenVersion),
+    expiresIn: '15m',
   };
 }
 
 /**
  * Verify and decode token
  */
-export function verifyToken(token: string): JwtPayload {
+export function verifyToken(token: string, type: 'access' | 'refresh' = 'access'): JwtPayload {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET, {
+    const decoded = jwt.verify(token, getJwtSecret(type), {
       issuer: 'mobile-dope-api',
       audience: 'mobile-dope-app',
     }) as JwtPayload;
 
     return decoded;
-  } catch (error: any) {
-    if (error.name === 'TokenExpiredError') {
+  } catch (error: unknown) {
+    const name = error instanceof Error ? error.name : '';
+    if (name === 'TokenExpiredError') {
       throw new AuthenticationError('Token has expired');
-    } else if (error.name === 'JsonWebTokenError') {
+    } else if (name === 'JsonWebTokenError') {
       throw new AuthenticationError('Invalid token');
     } else {
       throw new AuthenticationError('Token verification failed');
@@ -91,7 +118,7 @@ export function verifyToken(token: string): JwtPayload {
  * Verify access token
  */
 export function verifyAccessToken(token: string): JwtPayload {
-  const payload = verifyToken(token);
+  const payload = verifyToken(token, 'access');
 
   if (payload.type !== 'access') {
     throw new AuthenticationError('Invalid token type');
@@ -104,7 +131,7 @@ export function verifyAccessToken(token: string): JwtPayload {
  * Verify refresh token
  */
 export function verifyRefreshToken(token: string): JwtPayload {
-  const payload = verifyToken(token);
+  const payload = verifyToken(token, 'refresh');
 
   if (payload.type !== 'refresh') {
     throw new AuthenticationError('Invalid refresh token');
@@ -126,7 +153,7 @@ export function extractBearerToken(authHeader?: string): string | null {
     return null;
   }
 
-  return parts[1];
+  return parts[1] || null;
 }
 
 /**
