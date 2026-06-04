@@ -59,14 +59,7 @@ EnvironmentSnapshot.hasMany(DOPELog, {
 });
 
 // Export models and sequelize instance
-export {
-  sequelize,
-  User,
-  RifleProfile,
-  AmmoProfile,
-  EnvironmentSnapshot,
-  DOPELog,
-};
+export { sequelize, User, RifleProfile, AmmoProfile, EnvironmentSnapshot, DOPELog };
 
 // Export default object with all models
 export default {

@@ -28,8 +28,12 @@ interface RifleProfileAttributes {
   updated_at?: Date;
 }
 
-interface RifleProfileCreationAttributes extends Optional<RifleProfileAttributes, 'id' | 'created_at' | 'updated_at'> {}
+type RifleProfileCreationAttributes = Optional<
+  RifleProfileAttributes,
+  'id' | 'created_at' | 'updated_at'
+>;
 
+// prettier-ignore
 class RifleProfile extends Model<RifleProfileAttributes, RifleProfileCreationAttributes> implements RifleProfileAttributes {
   public id!: number;
   public user_id!: number;
@@ -189,11 +193,8 @@ RifleProfile.init(
     tableName: 'rifle_profiles',
     timestamps: true,
     underscored: true,
-    indexes: [
-      { fields: ['user_id'] },
-      { fields: ['caliber'] },
-    ],
-  }
+    indexes: [{ fields: ['user_id'] }, { fields: ['caliber'] }],
+  },
 );
 
 // Define associations

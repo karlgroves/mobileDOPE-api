@@ -14,7 +14,7 @@ import { asyncHandler } from '../middlewares/errorHandler';
 const router = Router();
 
 // All DOPE routes require authentication
-router.use(authenticate);
+router.use(asyncHandler(authenticate));
 
 /**
  * @route   GET /api/v1/dope/card
@@ -27,7 +27,7 @@ router.get(
     query('rifle_id').isInt({ min: 1 }).withMessage('Valid rifle_id is required'),
     query('ammo_id').isInt({ min: 1 }).withMessage('Valid ammo_id is required'),
   ]),
-  asyncHandler(DOPELogController.getCard.bind(DOPELogController))
+  asyncHandler(DOPELogController.getCard.bind(DOPELogController)),
 );
 
 /**
@@ -46,7 +46,7 @@ router.get(
     query('target_type').optional().isIn(['steel', 'paper', 'vital_zone', 'other']),
     query('sort').optional().isIn(['distance_asc', 'distance_desc', 'accuracy', 'date']),
   ]),
-  asyncHandler(DOPELogController.getAll.bind(DOPELogController))
+  asyncHandler(DOPELogController.getAll.bind(DOPELogController)),
 );
 
 /**
@@ -57,7 +57,7 @@ router.get(
 router.get(
   '/:id',
   validateId('id'),
-  asyncHandler(DOPELogController.getById.bind(DOPELogController))
+  asyncHandler(DOPELogController.getById.bind(DOPELogController)),
 );
 
 /**
@@ -68,37 +68,22 @@ router.get(
 router.post(
   '/',
   validate([
-    body('rifle_id')
-      .isInt({ min: 1 })
-      .withMessage('Valid rifle ID is required'),
-    body('ammo_id')
-      .isInt({ min: 1 })
-      .withMessage('Valid ammo ID is required'),
-    body('environment_id')
-      .isInt({ min: 1 })
-      .withMessage('Valid environment ID is required'),
+    body('rifle_id').isInt({ min: 1 }).withMessage('Valid rifle ID is required'),
+    body('ammo_id').isInt({ min: 1 }).withMessage('Valid ammo ID is required'),
+    body('environment_id').isInt({ min: 1 }).withMessage('Valid environment ID is required'),
     body('distance')
       .isFloat({ min: 0.01, max: 3000 })
       .withMessage('Distance must be between 0 and 3000'),
     body('distance_unit')
       .isIn(['yards', 'meters'])
       .withMessage('Distance unit must be yards or meters'),
-    body('elevation_correction')
-      .isFloat()
-      .withMessage('Elevation correction must be a number'),
-    body('windage_correction')
-      .isFloat()
-      .withMessage('Windage correction must be a number'),
-    body('correction_unit')
-      .isIn(['MIL', 'MOA'])
-      .withMessage('Correction unit must be MIL or MOA'),
+    body('elevation_correction').isFloat().withMessage('Elevation correction must be a number'),
+    body('windage_correction').isFloat().withMessage('Windage correction must be a number'),
+    body('correction_unit').isIn(['MIL', 'MOA']).withMessage('Correction unit must be MIL or MOA'),
     body('target_type')
       .isIn(['steel', 'paper', 'vital_zone', 'other'])
       .withMessage('Invalid target type'),
-    body('group_size')
-      .optional()
-      .isFloat({ min: 0 })
-      .withMessage('Group size must be positive'),
+    body('group_size').optional().isFloat({ min: 0 }).withMessage('Group size must be positive'),
     body('hit_count')
       .optional()
       .isInt({ min: 0 })
@@ -107,12 +92,9 @@ router.post(
       .optional()
       .isInt({ min: 0 })
       .withMessage('Shot count must be a non-negative integer'),
-    body('notes')
-      .optional()
-      .trim()
-      .isLength({ max: 5000 }),
+    body('notes').optional().trim().isLength({ max: 5000 }),
   ]),
-  asyncHandler(DOPELogController.create.bind(DOPELogController))
+  asyncHandler(DOPELogController.create.bind(DOPELogController)),
 );
 
 /**
@@ -138,7 +120,7 @@ router.put(
     body('shot_count').optional().isInt({ min: 0 }),
     body('notes').optional().trim().isLength({ max: 5000 }),
   ]),
-  asyncHandler(DOPELogController.update.bind(DOPELogController))
+  asyncHandler(DOPELogController.update.bind(DOPELogController)),
 );
 
 /**
@@ -149,7 +131,7 @@ router.put(
 router.delete(
   '/:id',
   validateId('id'),
-  asyncHandler(DOPELogController.delete.bind(DOPELogController))
+  asyncHandler(DOPELogController.delete.bind(DOPELogController)),
 );
 
 export default router;

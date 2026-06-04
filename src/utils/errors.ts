@@ -18,9 +18,9 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  public errors: any[];
+  public errors: unknown[];
 
-  constructor(message: string = 'Validation failed', errors: any[] = []) {
+  constructor(message: string = 'Validation failed', errors: unknown[] = []) {
     super(message, 400);
     this.errors = errors;
   }
@@ -75,8 +75,16 @@ export function isOperationalError(error: Error): boolean {
 /**
  * Format error for API response
  */
-export function formatErrorResponse(error: Error | AppError) {
-  const response: any = {
+interface FormattedError {
+  error: string;
+  message: string;
+  errors?: unknown[];
+  statusCode?: number;
+  stack?: string;
+}
+
+export function formatErrorResponse(error: Error | AppError): FormattedError {
+  const response: FormattedError = {
     error: error.name,
     message: error.message,
   };

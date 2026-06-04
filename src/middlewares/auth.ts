@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken, extractBearerToken } from '../utils/jwt';
-import { AuthenticationError, AuthorizationError } from '../utils/errors';
+import { AuthenticationError } from '../utils/errors';
 import { sendUnauthorized, sendForbidden } from '../utils/response';
 import User from '../models/User';
 
@@ -9,16 +9,6 @@ import User from '../models/User';
  *
  * JWT-based authentication and authorization middleware.
  */
-
-// Extend Express Request to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: User;
-      userId?: number;
-    }
-  }
-}
 
 /**
  * Authenticate user with JWT
@@ -48,11 +38,16 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
       return sendForbidden(res, 'Account is inactive');
     }
 
+    // Check token version for revocation
+    if (payload.tokenVersion !== undefined && payload.tokenVersion < user.token_version) {
+      return sendUnauthorized(res, 'Token has been revoked');
+    }
+
     // Attach user to request
     req.user = user;
     req.userId = user.id;
 
-    next();
+    return next();
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return sendUnauthorized(res, error.message);
@@ -65,7 +60,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
  * Optional authentication
  * Authenticates user if token is present, but doesn't fail if missing
  */
-export async function optionalAuth(req: Request, res: Response, next: NextFunction) {
+export async function optionalAuth(req: Request, _res: Response, next: NextFunction) {
   try {
     const token = extractBearerToken(req.headers.authorization);
 
@@ -99,7 +94,7 @@ export function requireVerified(req: Request, res: Response, next: NextFunction)
     return sendForbidden(res, 'Email verification required');
   }
 
-  next();
+  return next();
 }
 
 /**
@@ -113,17 +108,18 @@ export function requireOwnership(resourceUserIdField: string = 'user_id') {
     }
 
     // Get resource user ID from request params, body, or query
-    const resourceUserId =
+    const body = req.body as Record<string, string | number | undefined>;
+    const resourceUserId: string | number | undefined =
       req.params[resourceUserIdField] ||
-      req.body[resourceUserIdField] ||
-      req.query[resourceUserIdField];
+      body[resourceUserIdField] ||
+      (req.query[resourceUserIdField] as string | undefined);
 
     if (!resourceUserId) {
       return next(); // Let the controller handle the missing ID
     }
 
     // Check ownership
-    if (parseInt(resourceUserId, 10) !== req.user.id) {
+    if (parseInt(String(resourceUserId), 10) !== req.user.id) {
       return sendForbidden(res, 'You do not have permission to access this resource');
     }
 
@@ -173,7 +169,9 @@ export function rateLimit(maxRequests: number, windowMs: number) {
  * Middleware to ensure user owns the resource being accessed
  * Checks user_id in the resource fetched from database
  */
-export function checkResourceOwnership(getResource: (req: Request) => Promise<any>) {
+export function checkResourceOwnership(
+  getResource: (req: Request) => Promise<{ user_id: number } | null>,
+) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user) {
@@ -194,11 +192,11 @@ export function checkResourceOwnership(getResource: (req: Request) => Promise<an
       }
 
       // Attach resource to request for use in controller
-      (req as any).resource = resource;
+      req.resource = resource;
 
-      next();
+      return next();
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 }

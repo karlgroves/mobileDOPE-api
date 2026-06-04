@@ -12,13 +12,28 @@ dotenv.config();
 const isProduction = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
 
+const sqlLogger = (sql: string): void => {
+  if (process.env.LOG_LEVEL === 'debug') {
+    console.log('[Sequelize]', sql);
+  }
+};
+
+// Validate required env vars in production
+if (isProduction) {
+  const required = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables in production: ${missing.join(', ')}`);
+  }
+}
+
 // Database connection parameters
 const dbConfig: Options = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '3306', 10),
   database: process.env.DB_NAME || 'mobile_dope_dev',
   username: process.env.DB_USER || 'api_user',
-  password: process.env.DB_PASSWORD || 'dev_password_changeme',
+  password: process.env.DB_PASSWORD || '',
   dialect: 'mysql',
 
   // MySQL 9.x optimizations
@@ -26,8 +41,6 @@ const dbConfig: Options = {
     charset: 'utf8mb4',
     collate: 'utf8mb4_0900_ai_ci',
     connectTimeout: 10000,
-    // Enable multiple statements for migrations
-    multipleStatements: true,
     // SSL configuration for production (Digital Ocean requires SSL)
     ...(isProduction && {
       ssl: {
@@ -46,11 +59,7 @@ const dbConfig: Options = {
   },
 
   // Logging configuration
-  logging: isTest ? false : (sql: string) => {
-    if (process.env.LOG_LEVEL === 'debug') {
-      console.log('[Sequelize]', sql);
-    }
-  },
+  logging: isTest ? false : sqlLogger,
 
   // Timezone configuration (store all dates as UTC)
   timezone: '+00:00',
@@ -104,7 +113,8 @@ export async function testConnection(): Promise<boolean> {
     // Log MySQL version in development
     if (!isProduction) {
       const [results] = await sequelize.query('SELECT VERSION() as version');
-      const version = (results as any)[0]?.version;
+      const versionRows = results as Array<{ version?: string }>;
+      const version = versionRows[0]?.version;
       console.log(`✓ MySQL version: ${version}`);
     }
 
