@@ -2,8 +2,17 @@
 [extend]
 useDefault = true
 
+# Narrowly allowlist the placeholder/illustrative credentials used in
+# documentation examples. Scoped to the specific patterns (matched against the
+# whole line) rather than exempting all Markdown, so a real secret pasted into a
+# doc would still be caught.
 [allowlist]
-description = "Markdown documentation uses placeholder credentials in examples (e.g. 'Bearer YOUR_ACCESS_TOKEN', illustrative API keys), not real secrets."
-paths = [
-  '''.*\.md$''',
+description = "Documentation example placeholders, not real secrets"
+regexTarget = "line"
+regexes = [
+  # API docs: `Authorization: Bearer YOUR_ACCESS_TOKEN`, `Bearer YOUR_TOKEN`,
+  # `Bearer jwt-token-here`, `Bearer ${serviceToken}`, `Bearer <token>`
+  '''Bearer\s+(YOUR_[A-Z_]+|jwt-token-here|\$\{?\w+\}?|<[^>]+>)''',
+  # Illustrative constant in the naming-conventions standard
+  '''abcdef123456''',
 ]

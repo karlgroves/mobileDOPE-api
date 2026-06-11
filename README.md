@@ -28,6 +28,10 @@ The Mobile DOPE API provides:
 - Node.js 22+ (optional, for local development without Docker)
 - Git
 
+> **Note:** `.npmrc` sets `engine-strict=true`, so `npm install` will **fail** on
+> Node < 20 or npm < 10 (see the `engines` field in `package.json`). Use a
+> matching toolchain (e.g. `nvm use`, which reads `.nvmrc`).
+
 ### Development with Docker (Recommended)
 
 ```bash
@@ -121,6 +125,10 @@ api/
 - `npm run check:all` - Full local gate: `check` + `format:check` + tests
 - `npm run license:check` - Verify production dependency licenses
 - `npm run security:audit` - `npm audit` for production dependencies
+
+The `check`/`check:all` aggregate scripts use the `npm-run-all` binary, which is
+provided by the `npm-run-all2` dev dependency (a maintained fork — the binary
+name differs from the package name).
 
 The following require optional binaries installed via `scripts/bootstrap.sh`
 (`security:secrets` → gitleaks, `security:osv` → osv-scanner,
