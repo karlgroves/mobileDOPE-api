@@ -117,8 +117,12 @@ async function startServer(): Promise<void> {
   }
 }
 
-// Start the server
-void startServer();
+// Start the server only when run directly (e.g. `node dist/server.js`), not when
+// the app is imported — e.g. by integration tests via supertest — so importing
+// `app` does not boot a real server or require a database connection.
+if (require.main === module) {
+  void startServer();
+}
 
 // Graceful shutdown
 async function gracefulShutdown(signal: string): Promise<void> {
