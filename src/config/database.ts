@@ -1,5 +1,5 @@
-import { Sequelize, Options } from 'sequelize';
 import dotenv from 'dotenv';
+import { Sequelize, type Options } from 'sequelize';
 
 dotenv.config();
 
@@ -113,7 +113,7 @@ export async function testConnection(): Promise<boolean> {
     // Log MySQL version in development
     if (!isProduction) {
       const [results] = await sequelize.query('SELECT VERSION() as version');
-      const versionRows = results as Array<{ version?: string }>;
+      const versionRows = results as { version?: string }[];
       const version = versionRows[0]?.version;
       console.log(`✓ MySQL version: ${version}`);
     }

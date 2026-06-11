@@ -1,9 +1,11 @@
-import { DataTypes, Model, Optional, Association } from 'sequelize';
+import { DataTypes, Model, type Optional, type Association } from 'sequelize';
+
 import sequelize from '../config/database';
-import User from './User';
-import RifleProfile from './RifleProfile';
+
 import AmmoProfile from './AmmoProfile';
 import EnvironmentSnapshot from './EnvironmentSnapshot';
+import RifleProfile from './RifleProfile';
+import User from './User';
 
 /**
  * DOPELog Model
@@ -65,7 +67,7 @@ class DOPELog extends Model<DOPELogAttributes, DOPELogCreationAttributes> implem
   public readonly ammo?: AmmoProfile;
   public readonly environment?: EnvironmentSnapshot;
 
-  public static associations: {
+  public static override associations: {
     user: Association<DOPELog, User>;
     rifle: Association<DOPELog, RifleProfile>;
     ammo: Association<DOPELog, AmmoProfile>;
@@ -101,8 +103,8 @@ class DOPELog extends Model<DOPELogAttributes, DOPELogCreationAttributes> implem
    */
   public getDOPEEntry(): string {
     const dist = `${this.distance}${this.distance_unit === 'yards' ? 'yd' : 'm'}`;
-    const elev = `${this.elevation_correction.toFixed(2)}`;
-    const wind = `${this.windage_correction.toFixed(2)}`;
+    const elev = this.elevation_correction.toFixed(2);
+    const wind = this.windage_correction.toFixed(2);
     return `${dist}: ↑${elev} →${wind} ${this.correction_unit}`;
   }
 

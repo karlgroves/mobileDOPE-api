@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+
 import { AuthenticationError } from './errors';
 
 /**
@@ -162,7 +163,7 @@ export function extractBearerToken(authHeader?: string): string | null {
 export function getTokenExpiration(token: string): Date | null {
   try {
     const decoded = jwt.decode(token) as JwtPayload;
-    if (!decoded || !decoded.exp) {
+    if (!decoded?.exp) {
       return null;
     }
     return new Date(decoded.exp * 1000);

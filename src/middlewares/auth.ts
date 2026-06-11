@@ -1,8 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import { verifyAccessToken, extractBearerToken } from '../utils/jwt';
-import { AuthenticationError } from '../utils/errors';
-import { sendUnauthorized, sendForbidden } from '../utils/response';
+import { type Request, type Response, type NextFunction } from 'express';
+
 import User from '../models/User';
+import { AuthenticationError } from '../utils/errors';
+import { verifyAccessToken, extractBearerToken } from '../utils/jwt';
+import { sendUnauthorized, sendForbidden } from '../utils/response';
 
 /**
  * Authentication Middleware
@@ -47,7 +48,8 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     req.user = user;
     req.userId = user.id;
 
-    return next();
+    next();
+    return;
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return sendUnauthorized(res, error.message);
@@ -87,24 +89,27 @@ export async function optionalAuth(req: Request, _res: Response, next: NextFunct
  */
 export function requireVerified(req: Request, res: Response, next: NextFunction) {
   if (!req.user) {
-    return sendUnauthorized(res, 'Authentication required');
+    sendUnauthorized(res, 'Authentication required');
+    return;
   }
 
   if (!req.user.is_verified) {
-    return sendForbidden(res, 'Email verification required');
+    sendForbidden(res, 'Email verification required');
+    return;
   }
 
-  return next();
+  next();
 }
 
 /**
  * Check resource ownership
  * Ensures user owns the requested resource
  */
-export function requireOwnership(resourceUserIdField: string = 'user_id') {
+export function requireOwnership(resourceUserIdField = 'user_id') {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return sendUnauthorized(res, 'Authentication required');
+      sendUnauthorized(res, 'Authentication required');
+      return;
     }
 
     // Get resource user ID from request params, body, or query
@@ -115,12 +120,14 @@ export function requireOwnership(resourceUserIdField: string = 'user_id') {
       (req.query[resourceUserIdField] as string | undefined);
 
     if (!resourceUserId) {
-      return next(); // Let the controller handle the missing ID
+      next();
+      return; // Let the controller handle the missing ID
     }
 
     // Check ownership
     if (parseInt(String(resourceUserId), 10) !== req.user.id) {
-      return sendForbidden(res, 'You do not have permission to access this resource');
+      sendForbidden(res, 'You do not have permission to access this resource');
+      return;
     }
 
     next();
@@ -136,7 +143,8 @@ export function rateLimit(maxRequests: number, windowMs: number) {
 
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.userId) {
-      return next(); // Skip rate limiting for unauthenticated requests
+      next();
+      return; // Skip rate limiting for unauthenticated requests
     }
 
     const now = Date.now();
@@ -148,15 +156,17 @@ export function rateLimit(maxRequests: number, windowMs: number) {
         count: 1,
         resetTime: now + windowMs,
       });
-      return next();
+      next();
+      return;
     }
 
     if (userLimit.count >= maxRequests) {
-      return res.status(429).json({
+      res.status(429).json({
         success: false,
         message: 'Too many requests. Please try again later.',
         retryAfter: Math.ceil((userLimit.resetTime - now) / 1000),
       });
+      return;
     }
 
     // Increment counter
@@ -194,9 +204,11 @@ export function checkResourceOwnership(
       // Attach resource to request for use in controller
       req.resource = resource;
 
-      return next();
+      next();
+      return;
     } catch (error) {
-      return next(error);
+      next(error);
+      return;
     }
   };
 }

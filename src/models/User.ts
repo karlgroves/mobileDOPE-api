@@ -1,7 +1,9 @@
-import { DataTypes, Model, Optional } from 'sequelize';
 import crypto from 'crypto';
-import sequelize from '../config/database';
+
 import bcrypt from 'bcrypt';
+import { DataTypes, Model, type Optional } from 'sequelize';
+
+import sequelize from '../config/database';
 
 /**
  * User Model
@@ -156,7 +158,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   /**
    * Get user JSON (exclude sensitive fields)
    */
-  public toJSON(): Partial<UserAttributes> {
+  public override toJSON(): Partial<UserAttributes> {
     const values: Partial<UserAttributes> = { ...this.get() };
     delete values.password_hash;
     delete values.email_verification_token;

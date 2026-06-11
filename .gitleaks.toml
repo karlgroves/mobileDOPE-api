@@ -1,0 +1,9 @@
+# gitleaks configuration. Extends the bundled default ruleset.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Markdown documentation uses placeholder credentials in examples (e.g. 'Bearer YOUR_ACCESS_TOKEN', illustrative API keys), not real secrets."
+paths = [
+  '''.*\.md$''',
+]

@@ -1,5 +1,5 @@
 import bunyan from 'bunyan';
-import { Request, Response } from 'express';
+import { type Request, type Response } from 'express';
 
 /**
  * Logger Utility
@@ -13,7 +13,7 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Error logs to a separate stream in production
 const productionStreams: bunyan.Stream[] =
-  NODE_ENV === 'production' ? [{ stream: process.stderr, level: 'error' as bunyan.LogLevel }] : [];
+  NODE_ENV === 'production' ? [{ stream: process.stderr, level: 'error' }] : [];
 
 // Create base logger
 const logger = bunyan.createLogger({

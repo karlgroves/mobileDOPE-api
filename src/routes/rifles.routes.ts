@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { body, query } from 'express-validator';
+
 import RifleProfileController from '../controllers/RifleProfileController';
-import { validate, validatePagination, validateId } from '../middlewares/validation';
 import { authenticate } from '../middlewares/auth';
 import { asyncHandler } from '../middlewares/errorHandler';
+import { validate, validatePagination, validateId } from '../middlewares/validation';
 
 /**
  * Rifle Profile Routes
@@ -18,7 +19,7 @@ router.use(asyncHandler(authenticate));
 
 /**
  * @route   GET /api/v1/rifles
- * @desc    Get all rifle profiles for authenticated user
+ * @description    Get all rifle profiles for authenticated user
  * @access  Private
  */
 router.get(
@@ -33,7 +34,7 @@ router.get(
 
 /**
  * @route   GET /api/v1/rifles/:id
- * @desc    Get single rifle profile
+ * @description    Get single rifle profile
  * @access  Private
  */
 router.get(
@@ -44,7 +45,7 @@ router.get(
 
 /**
  * @route   GET /api/v1/rifles/:id/stats
- * @desc    Get rifle statistics
+ * @description    Get rifle statistics
  * @access  Private
  */
 router.get(
@@ -55,7 +56,7 @@ router.get(
 
 /**
  * @route   POST /api/v1/rifles
- * @desc    Create new rifle profile
+ * @description    Create new rifle profile
  * @access  Private
  */
 router.post(
@@ -118,7 +119,7 @@ router.post(
 
 /**
  * @route   PUT /api/v1/rifles/:id
- * @desc    Update rifle profile
+ * @description    Update rifle profile
  * @access  Private
  */
 router.put(
@@ -151,7 +152,7 @@ router.put(
 
 /**
  * @route   DELETE /api/v1/rifles/:id
- * @desc    Delete rifle profile
+ * @description    Delete rifle profile
  * @access  Private
  */
 router.delete(

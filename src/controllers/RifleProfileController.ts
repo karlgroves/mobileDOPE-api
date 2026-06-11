@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
-import { Op, WhereOptions, QueryTypes } from 'sequelize';
+import { type Request, type Response } from 'express';
+import { Op, type WhereOptions, QueryTypes } from 'sequelize';
+
 import RifleProfile from '../models/RifleProfile';
 import { NotFoundError } from '../utils/errors';
 import { sendSuccess, sendCreated, sendNoContent, sendPaginated } from '../utils/response';

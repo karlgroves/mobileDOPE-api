@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { type Response } from 'express';
 
 /**
  * Response Utilities
@@ -34,7 +34,7 @@ export function sendSuccess(
   res: Response,
   data?: unknown,
   message?: string,
-  statusCode: number = 200,
+  statusCode = 200,
 ): Response {
   const response: ApiResponse = {
     success: true,
@@ -102,7 +102,7 @@ export function sendPaginated(
 export function sendError(
   res: Response,
   message: string,
-  statusCode: number = 500,
+  statusCode = 500,
   errors?: unknown[],
 ): Response {
   const response: ErrorResponse = {

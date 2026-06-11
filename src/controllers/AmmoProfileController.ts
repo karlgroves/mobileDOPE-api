@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
-import { Op, WhereOptions, QueryTypes } from 'sequelize';
+import { type Request, type Response } from 'express';
+import { Op, type WhereOptions, QueryTypes } from 'sequelize';
+
 import AmmoProfile from '../models/AmmoProfile';
 import RifleProfile from '../models/RifleProfile';
 import { NotFoundError, ValidationError } from '../utils/errors';

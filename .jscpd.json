@@ -1,0 +1,23 @@
+{
+  "threshold": 5,
+  "minTokens": 50,
+  "minLines": 5,
+  "maxLines": 1000,
+  "maxSize": "100kb",
+  "reporters": ["console", "html"],
+  "output": "./reports/jscpd",
+  "format": ["typescript", "javascript", "json", "markdown"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/reports/**",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/package-lock.json",
+    "**/*.min.*"
+  ],
+  "absolute": true,
+  "gitignore": true
+}

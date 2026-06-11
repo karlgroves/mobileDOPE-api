@@ -1,9 +1,10 @@
-import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { type Request, type Response, type NextFunction, type RequestHandler } from 'express';
+
 import { AppError, formatErrorResponse, isOperationalError } from '../utils/errors';
 import logger, { logError } from '../utils/logger';
 
 interface SequelizeLikeError {
-  errors?: Array<{ path?: string; message?: string }>;
+  errors?: { path?: string; message?: string }[];
 }
 
 /**
