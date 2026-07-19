@@ -1,9 +1,10 @@
-import { Request, Response } from 'express';
-import { Op, WhereOptions, Order } from 'sequelize';
-import DOPELog from '../models/DOPELog';
-import RifleProfile from '../models/RifleProfile';
+import { type Request, type Response } from 'express';
+import { Op, type WhereOptions, type Order } from 'sequelize';
+
 import AmmoProfile from '../models/AmmoProfile';
+import DOPELog from '../models/DOPELog';
 import EnvironmentSnapshot from '../models/EnvironmentSnapshot';
+import RifleProfile from '../models/RifleProfile';
 import { NotFoundError, ValidationError } from '../utils/errors';
 import { sendSuccess, sendCreated, sendNoContent, sendPaginated } from '../utils/response';
 

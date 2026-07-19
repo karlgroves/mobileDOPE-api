@@ -1,5 +1,7 @@
-import { Sequelize, Options } from 'sequelize';
 import dotenv from 'dotenv';
+import { Sequelize, type Options } from 'sequelize';
+
+import logger from '../utils/logger';
 
 dotenv.config();
 
@@ -13,9 +15,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
 
 const sqlLogger = (sql: string): void => {
-  if (process.env.LOG_LEVEL === 'debug') {
-    console.log('[Sequelize]', sql);
-  }
+  // bunyan emits this only when the configured level is debug or lower.
+  logger.debug(sql);
 };
 
 // Validate required env vars in production
@@ -108,19 +109,19 @@ const sequelize = new Sequelize(dbConfig);
 export async function testConnection(): Promise<boolean> {
   try {
     await sequelize.authenticate();
-    console.log('✓ Database connection established successfully');
+    logger.info('✓ Database connection established successfully');
 
     // Log MySQL version in development
     if (!isProduction) {
       const [results] = await sequelize.query('SELECT VERSION() as version');
-      const versionRows = results as Array<{ version?: string }>;
+      const versionRows = results as { version?: string }[];
       const version = versionRows[0]?.version;
-      console.log(`✓ MySQL version: ${version}`);
+      logger.info(`✓ MySQL version: ${version}`);
     }
 
     return true;
   } catch (error) {
-    console.error('✗ Unable to connect to database:', error);
+    logger.error({ err: error }, '✗ Unable to connect to database');
     return false;
   }
 }
@@ -131,9 +132,9 @@ export async function testConnection(): Promise<boolean> {
 export async function closeConnection(): Promise<void> {
   try {
     await sequelize.close();
-    console.log('✓ Database connection closed');
+    logger.info('✓ Database connection closed');
   } catch (error) {
-    console.error('✗ Error closing database connection:', error);
+    logger.error({ err: error }, '✗ Error closing database connection');
   }
 }
 
@@ -148,9 +149,9 @@ export async function syncDatabase(force = false): Promise<void> {
 
   try {
     await sequelize.sync({ force, alter: !force && !isProduction });
-    console.log(`✓ Database synced ${force ? '(forced)' : '(altered)'}`);
+    logger.info(`✓ Database synced ${force ? '(forced)' : '(altered)'}`);
   } catch (error) {
-    console.error('✗ Error syncing database:', error);
+    logger.error({ err: error }, '✗ Error syncing database');
     throw error;
   }
 }

@@ -39,6 +39,9 @@ redis_prod_data/
 coverage/
 .nyc_output/
 
+# Quality tool reports (jscpd, etc.)
+reports/
+
 # IDE
 .vscode/
 .idea/

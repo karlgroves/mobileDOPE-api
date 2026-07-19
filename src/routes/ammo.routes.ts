@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { body, query } from 'express-validator';
+
 import AmmoProfileController from '../controllers/AmmoProfileController';
-import { validate, validatePagination, validateId } from '../middlewares/validation';
 import { authenticate } from '../middlewares/auth';
 import { asyncHandler } from '../middlewares/errorHandler';
+import { validate, validatePagination, validateId } from '../middlewares/validation';
 
 /**
  * Ammo Profile Routes
@@ -18,7 +19,7 @@ router.use(asyncHandler(authenticate));
 
 /**
  * @route   GET /api/v1/ammo
- * @desc    Get all ammo profiles for authenticated user
+ * @description    Get all ammo profiles for authenticated user
  * @access  Private
  */
 router.get(
@@ -34,7 +35,7 @@ router.get(
 
 /**
  * @route   GET /api/v1/ammo/:id
- * @desc    Get single ammo profile
+ * @description    Get single ammo profile
  * @access  Private
  */
 router.get(
@@ -45,7 +46,7 @@ router.get(
 
 /**
  * @route   GET /api/v1/ammo/:id/stats
- * @desc    Get ammo performance statistics
+ * @description    Get ammo performance statistics
  * @access  Private
  */
 router.get(
@@ -56,7 +57,7 @@ router.get(
 
 /**
  * @route   POST /api/v1/ammo
- * @desc    Create new ammo profile
+ * @description    Create new ammo profile
  * @access  Private
  */
 router.post(
@@ -99,7 +100,7 @@ router.post(
 
 /**
  * @route   PUT /api/v1/ammo/:id
- * @desc    Update ammo profile
+ * @description    Update ammo profile
  * @access  Private
  */
 router.put(
@@ -124,7 +125,7 @@ router.put(
 
 /**
  * @route   DELETE /api/v1/ammo/:id
- * @desc    Delete ammo profile
+ * @description    Delete ammo profile
  * @access  Private
  */
 router.delete(

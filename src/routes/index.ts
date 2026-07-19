@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import authRoutes from './auth.routes';
-import rifleRoutes from './rifles.routes';
+
 import ammoRoutes from './ammo.routes';
+import authRoutes from './auth.routes';
 import dopeRoutes from './dope.routes';
 import environmentRoutes from './environment.routes';
+import rifleRoutes from './rifles.routes';
 
 /**
  * Routes Index

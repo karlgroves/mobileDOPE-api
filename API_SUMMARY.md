@@ -9,6 +9,7 @@ Complete RESTful API backend for the Mobile DOPE precision shooting application 
 ## 🎯 Core Features Implemented
 
 ### Authentication & Security
+
 - ✅ JWT-based authentication (15min access, 7d refresh tokens)
 - ✅ User registration with email verification
 - ✅ Password reset flow
@@ -20,6 +21,7 @@ Complete RESTful API backend for the Mobile DOPE precision shooting application 
 - ✅ Helmet security headers
 
 ### Data Management
+
 - ✅ Rifle Profiles (6 endpoints)
 - ✅ Ammunition Profiles (6 endpoints)
 - ✅ DOPE Logs (6 endpoints)
@@ -30,6 +32,7 @@ Complete RESTful API backend for the Mobile DOPE precision shooting application 
 - ✅ Statistics and aggregations
 
 ### Database (MySQL 9.x)
+
 - ✅ 15 tables with proper relationships
 - ✅ Generated columns (UUID, distance_yards, hit_percentage, quality_score)
 - ✅ Invisible columns (login_count, row_version)
@@ -43,64 +46,70 @@ Complete RESTful API backend for the Mobile DOPE precision shooting application 
 ## 📊 API Endpoints (33 Total)
 
 ### Authentication (8 endpoints)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/v1/auth/register` | Register new user |
-| POST | `/v1/auth/login` | Login user |
-| POST | `/v1/auth/refresh` | Refresh access token |
-| POST | `/v1/auth/verify-email` | Verify email |
-| POST | `/v1/auth/forgot-password` | Request password reset |
-| POST | `/v1/auth/reset-password` | Reset password |
-| POST | `/v1/auth/logout` | Logout user |
-| GET | `/v1/auth/me` | Get current user |
+
+| Method | Endpoint                   | Description            |
+| ------ | -------------------------- | ---------------------- |
+| POST   | `/v1/auth/register`        | Register new user      |
+| POST   | `/v1/auth/login`           | Login user             |
+| POST   | `/v1/auth/refresh`         | Refresh access token   |
+| POST   | `/v1/auth/verify-email`    | Verify email           |
+| POST   | `/v1/auth/forgot-password` | Request password reset |
+| POST   | `/v1/auth/reset-password`  | Reset password         |
+| POST   | `/v1/auth/logout`          | Logout user            |
+| GET    | `/v1/auth/me`              | Get current user       |
 
 ### Rifle Profiles (6 endpoints)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/v1/rifles` | List rifles |
-| GET | `/v1/rifles/:id` | Get rifle |
-| GET | `/v1/rifles/:id/stats` | Get rifle statistics |
-| POST | `/v1/rifles` | Create rifle |
-| PUT | `/v1/rifles/:id` | Update rifle |
-| DELETE | `/v1/rifles/:id` | Delete rifle |
+
+| Method | Endpoint               | Description          |
+| ------ | ---------------------- | -------------------- |
+| GET    | `/v1/rifles`           | List rifles          |
+| GET    | `/v1/rifles/:id`       | Get rifle            |
+| GET    | `/v1/rifles/:id/stats` | Get rifle statistics |
+| POST   | `/v1/rifles`           | Create rifle         |
+| PUT    | `/v1/rifles/:id`       | Update rifle         |
+| DELETE | `/v1/rifles/:id`       | Delete rifle         |
 
 ### Ammunition Profiles (6 endpoints)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/v1/ammo` | List ammo |
-| GET | `/v1/ammo/:id` | Get ammo |
-| GET | `/v1/ammo/:id/stats` | Get ammo statistics |
-| POST | `/v1/ammo` | Create ammo |
-| PUT | `/v1/ammo/:id` | Update ammo |
-| DELETE | `/v1/ammo/:id` | Delete ammo |
+
+| Method | Endpoint             | Description         |
+| ------ | -------------------- | ------------------- |
+| GET    | `/v1/ammo`           | List ammo           |
+| GET    | `/v1/ammo/:id`       | Get ammo            |
+| GET    | `/v1/ammo/:id/stats` | Get ammo statistics |
+| POST   | `/v1/ammo`           | Create ammo         |
+| PUT    | `/v1/ammo/:id`       | Update ammo         |
+| DELETE | `/v1/ammo/:id`       | Delete ammo         |
 
 ### DOPE Logs (6 endpoints)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/v1/dope` | List logs |
-| GET | `/v1/dope/:id` | Get log |
-| GET | `/v1/dope/card` | Get DOPE card data |
-| POST | `/v1/dope` | Create log |
-| PUT | `/v1/dope/:id` | Update log |
-| DELETE | `/v1/dope/:id` | Delete log |
+
+| Method | Endpoint        | Description        |
+| ------ | --------------- | ------------------ |
+| GET    | `/v1/dope`      | List logs          |
+| GET    | `/v1/dope/:id`  | Get log            |
+| GET    | `/v1/dope/card` | Get DOPE card data |
+| POST   | `/v1/dope`      | Create log         |
+| PUT    | `/v1/dope/:id`  | Update log         |
+| DELETE | `/v1/dope/:id`  | Delete log         |
 
 ### Environment Snapshots (7 endpoints)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/v1/environment` | List snapshots |
-| GET | `/v1/environment/:id` | Get snapshot |
-| GET | `/v1/environment/current` | Get most recent |
-| GET | `/v1/environment/averages` | Get averages for date range |
-| POST | `/v1/environment` | Create snapshot |
-| PUT | `/v1/environment/:id` | Update snapshot |
-| DELETE | `/v1/environment/:id` | Delete snapshot |
+
+| Method | Endpoint                   | Description                 |
+| ------ | -------------------------- | --------------------------- |
+| GET    | `/v1/environment`          | List snapshots              |
+| GET    | `/v1/environment/:id`      | Get snapshot                |
+| GET    | `/v1/environment/current`  | Get most recent             |
+| GET    | `/v1/environment/averages` | Get averages for date range |
+| POST   | `/v1/environment`          | Create snapshot             |
+| PUT    | `/v1/environment/:id`      | Update snapshot             |
+| DELETE | `/v1/environment/:id`      | Delete snapshot             |
 
 ---
 
 ## 🗄️ Database Schema
 
 ### Core Tables
-```
+
+```text
 users (15 fields)
 ├── id, uuid, email, password_hash
 ├── name, is_active, is_verified
@@ -141,6 +150,7 @@ dope_logs (17 fields)
 ```
 
 ### Additional Tables
+
 - `refresh_tokens` - JWT refresh token storage
 - `shot_strings` - Chronograph velocity data
 - `range_sessions` - Complete shooting sessions
@@ -156,6 +166,7 @@ dope_logs (17 fields)
 ## 🧪 Testing Infrastructure
 
 ### Jest Configuration
+
 - ✅ TypeScript support (ts-jest)
 - ✅ Path aliases matching tsconfig
 - ✅ Coverage collection
@@ -163,11 +174,13 @@ dope_logs (17 fields)
 - ✅ Global setup/teardown
 
 ### Tests Implemented
+
 - ✅ Health check endpoint tests
 - ✅ API info endpoint tests
 - ✅ 404 error handling tests
 
 ### Ready for Additional Tests
+
 - Unit tests for models
 - Unit tests for utilities
 - Integration tests for all endpoints
@@ -179,7 +192,7 @@ dope_logs (17 fields)
 
 ## 📁 Project Structure
 
-```
+```text
 api/
 ├── src/
 │   ├── config/
@@ -236,6 +249,7 @@ api/
 ## 🚀 Development Workflow
 
 ### Local Development
+
 ```bash
 # Start with Docker (recommended)
 docker-compose up
@@ -249,6 +263,7 @@ http://localhost:3000/api
 ```
 
 ### Testing
+
 ```bash
 # Run tests
 npm test
@@ -261,6 +276,7 @@ npm test -- --coverage
 ```
 
 ### Code Quality
+
 ```bash
 # Lint
 npm run lint
@@ -277,19 +293,19 @@ npm run type-check
 
 ## 📦 Technology Stack
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Runtime | Node.js | 22 LTS |
-| Framework | Express.js | 4.x |
-| Language | TypeScript | 5.x (strict mode) |
-| Database | MySQL | 9.1+ |
-| ORM | Sequelize | 6.x |
-| Auth | JWT | jsonwebtoken 9.x |
-| Password | bcrypt | 5.x |
-| Logging | Bunyan | 1.x |
-| Testing | Jest | 29.x |
-| Validation | express-validator | 7.x |
-| Container | Docker | Latest |
+| Layer      | Technology        | Version           |
+| ---------- | ----------------- | ----------------- |
+| Runtime    | Node.js           | 22 LTS            |
+| Framework  | Express.js        | 4.x               |
+| Language   | TypeScript        | 5.x (strict mode) |
+| Database   | MySQL             | 9.1+              |
+| ORM        | Sequelize         | 6.x               |
+| Auth       | JWT               | jsonwebtoken 9.x  |
+| Password   | bcrypt            | 5.x               |
+| Logging    | Bunyan            | 1.x               |
+| Testing    | Jest              | 29.x              |
+| Validation | express-validator | 7.x               |
+| Container  | Docker            | Latest            |
 
 ---
 
@@ -313,6 +329,7 @@ npm run type-check
 ## 📈 Performance Optimizations
 
 ### Database
+
 - Composite indexes on common query patterns
 - Generated columns for calculated values
 - Proper foreign key indexes
@@ -320,6 +337,7 @@ npm run type-check
 - utf8mb4_0900_ai_ci collation (15-20% faster)
 
 ### Application
+
 - Async/await throughout
 - Efficient Sequelize includes
 - Pagination on all list endpoints
@@ -327,6 +345,7 @@ npm run type-check
 - Structured logging with levels
 
 ### MySQL 9.x Features
+
 - Generated columns (UUID, distance_yards, hit_percentage)
 - Invisible columns (login_count, row_version)
 - Enhanced JSON indexing
@@ -337,7 +356,7 @@ npm run type-check
 
 ## 📝 Git History (9 Commits)
 
-```
+```text
 f7aa35e Add EnvironmentSnapshot API and testing infrastructure
 e818469 Add comprehensive API documentation to README
 56032a7 Add CRUD controllers and routes for core entities
@@ -354,6 +373,7 @@ e818469 Add comprehensive API documentation to README
 ## ✅ Completion Checklist
 
 ### Core Functionality
+
 - [x] User authentication and authorization
 - [x] JWT token management
 - [x] Rifle profile CRUD
@@ -368,6 +388,7 @@ e818469 Add comprehensive API documentation to README
 - [x] Cascade delete protection
 
 ### Security
+
 - [x] Password hashing
 - [x] JWT authentication
 - [x] Input validation
@@ -378,6 +399,7 @@ e818469 Add comprehensive API documentation to README
 - [x] Ownership verification
 
 ### Infrastructure
+
 - [x] Docker development environment
 - [x] MySQL 9.x database schema
 - [x] Sequelize models
@@ -388,6 +410,7 @@ e818469 Add comprehensive API documentation to README
 - [x] API documentation
 
 ### Code Quality
+
 - [x] TypeScript strict mode
 - [x] ESLint configuration
 - [x] Prettier formatting
@@ -401,6 +424,7 @@ e818469 Add comprehensive API documentation to README
 ## 🎯 Next Steps
 
 ### Immediate (Optional Enhancements)
+
 1. Add more integration tests
 2. Implement community ammunition endpoints
 3. Add data export functionality (JSON/CSV)
@@ -409,6 +433,7 @@ e818469 Add comprehensive API documentation to README
 6. Set up CI/CD with GitHub Actions
 
 ### Future Features
+
 1. Real-time sync with WebSockets
 2. Background jobs with Bull/Redis
 3. File upload for target images (S3)

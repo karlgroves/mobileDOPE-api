@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { body, query } from 'express-validator';
+
 import EnvironmentSnapshotController from '../controllers/EnvironmentSnapshotController';
-import { validate, validatePagination, validateId } from '../middlewares/validation';
 import { authenticate } from '../middlewares/auth';
 import { asyncHandler } from '../middlewares/errorHandler';
+import { validate, validatePagination, validateId } from '../middlewares/validation';
 
 /**
  * Environment Snapshot Routes
@@ -18,7 +19,7 @@ router.use(asyncHandler(authenticate));
 
 /**
  * @route   GET /api/v1/environment/current
- * @desc    Get most recent environment snapshot
+ * @description    Get most recent environment snapshot
  * @access  Private
  */
 router.get(
@@ -28,7 +29,7 @@ router.get(
 
 /**
  * @route   GET /api/v1/environment/averages
- * @desc    Get average conditions for date range
+ * @description    Get average conditions for date range
  * @access  Private
  */
 router.get(
@@ -42,7 +43,7 @@ router.get(
 
 /**
  * @route   GET /api/v1/environment
- * @desc    Get all environment snapshots for authenticated user
+ * @description    Get all environment snapshots for authenticated user
  * @access  Private
  */
 router.get(
@@ -59,7 +60,7 @@ router.get(
 
 /**
  * @route   GET /api/v1/environment/:id
- * @desc    Get single environment snapshot
+ * @description    Get single environment snapshot
  * @access  Private
  */
 router.get(
@@ -70,7 +71,7 @@ router.get(
 
 /**
  * @route   POST /api/v1/environment
- * @desc    Create new environment snapshot
+ * @description    Create new environment snapshot
  * @access  Private
  */
 router.post(
@@ -109,7 +110,7 @@ router.post(
 
 /**
  * @route   PUT /api/v1/environment/:id
- * @desc    Update environment snapshot
+ * @description    Update environment snapshot
  * @access  Private
  */
 router.put(
@@ -131,7 +132,7 @@ router.put(
 
 /**
  * @route   DELETE /api/v1/environment/:id
- * @desc    Delete environment snapshot
+ * @description    Delete environment snapshot
  * @access  Private
  */
 router.delete(

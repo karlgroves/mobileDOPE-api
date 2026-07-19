@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { body, query } from 'express-validator';
+
 import DOPELogController from '../controllers/DOPELogController';
-import { validate, validatePagination, validateId } from '../middlewares/validation';
 import { authenticate } from '../middlewares/auth';
 import { asyncHandler } from '../middlewares/errorHandler';
+import { validate, validatePagination, validateId } from '../middlewares/validation';
 
 /**
  * DOPE Log Routes
@@ -18,7 +19,7 @@ router.use(asyncHandler(authenticate));
 
 /**
  * @route   GET /api/v1/dope/card
- * @desc    Get DOPE card data for rifle/ammo combination
+ * @description    Get DOPE card data for rifle/ammo combination
  * @access  Private
  */
 router.get(
@@ -32,7 +33,7 @@ router.get(
 
 /**
  * @route   GET /api/v1/dope
- * @desc    Get all DOPE logs for authenticated user
+ * @description    Get all DOPE logs for authenticated user
  * @access  Private
  */
 router.get(
@@ -51,7 +52,7 @@ router.get(
 
 /**
  * @route   GET /api/v1/dope/:id
- * @desc    Get single DOPE log
+ * @description    Get single DOPE log
  * @access  Private
  */
 router.get(
@@ -62,7 +63,7 @@ router.get(
 
 /**
  * @route   POST /api/v1/dope
- * @desc    Create new DOPE log
+ * @description    Create new DOPE log
  * @access  Private
  */
 router.post(
@@ -99,7 +100,7 @@ router.post(
 
 /**
  * @route   PUT /api/v1/dope/:id
- * @desc    Update DOPE log
+ * @description    Update DOPE log
  * @access  Private
  */
 router.put(
@@ -125,7 +126,7 @@ router.put(
 
 /**
  * @route   DELETE /api/v1/dope/:id
- * @desc    Delete DOPE log
+ * @description    Delete DOPE log
  * @access  Private
  */
 router.delete(

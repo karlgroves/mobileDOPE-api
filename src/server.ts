@@ -5,17 +5,19 @@
  * @author Mobile DOPE Development Team
  */
 
-import express, { Application, Request, Response } from 'express';
-import { Server } from 'http';
+import { type Server } from 'http';
+
 import cors from 'cors';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import morgan from 'morgan';
 import dotenv from 'dotenv';
+import express, { type Application, type Request, type Response } from 'express';
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import morgan from 'morgan';
+
 import { testConnection, closeConnection } from './config/database';
-import routes from './routes';
 import { errorHandler, notFoundHandler, handleUncaughtErrors } from './middlewares/errorHandler';
 import { sanitizeInput } from './middlewares/validation';
+import routes from './routes';
 import logger from './utils/logger';
 
 // Load environment variables
@@ -115,8 +117,12 @@ async function startServer(): Promise<void> {
   }
 }
 
-// Start the server
-void startServer();
+// Start the server only when run directly (e.g. `node dist/server.js`), not when
+// the app is imported — e.g. by integration tests via supertest — so importing
+// `app` does not boot a real server or require a database connection.
+if (require.main === module) {
+  void startServer();
+}
 
 // Graceful shutdown
 async function gracefulShutdown(signal: string): Promise<void> {

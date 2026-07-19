@@ -1,9 +1,10 @@
-import { Request, Response } from 'express';
+import { type Request, type Response } from 'express';
+
 import User from '../models/User';
-import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
 import { AuthenticationError, ConflictError, NotFoundError } from '../utils/errors';
-import { sendSuccess, sendCreated } from '../utils/response';
+import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
 import { logAuth } from '../utils/logger';
+import { sendSuccess, sendCreated } from '../utils/response';
 
 /**
  * Authentication Controller

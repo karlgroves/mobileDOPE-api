@@ -1,6 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
-import { validationResult, ValidationChain } from 'express-validator';
+import { type Request, type Response, type NextFunction } from 'express';
+import { validationResult, type ValidationChain } from 'express-validator';
+
 import { sendValidationError } from '../utils/response';
+
 import { asyncHandler } from './errorHandler';
 
 /**
@@ -21,7 +23,8 @@ export function validate(validations: ValidationChain[]) {
     const errors = validationResult(req);
 
     if (errors.isEmpty()) {
-      return next();
+      next();
+      return;
     }
 
     // Format errors (exclude submitted values to prevent leaking sensitive data)
@@ -91,24 +94,26 @@ export function validatePagination(req: Request, res: Response, next: NextFuncti
 
   // Validate page
   if (page < 1) {
-    return sendValidationError(res, [
+    sendValidationError(res, [
       {
         field: 'page',
         message: 'Page must be greater than 0',
         value: page,
       },
     ]);
+    return;
   }
 
   // Validate limit
   if (limit < 1 || limit > 100) {
-    return sendValidationError(res, [
+    sendValidationError(res, [
       {
         field: 'limit',
         message: 'Limit must be between 1 and 100',
         value: limit,
       },
     ]);
+    return;
   }
 
   // Attach to request
@@ -118,29 +123,30 @@ export function validatePagination(req: Request, res: Response, next: NextFuncti
     offset: (page - 1) * limit,
   };
 
-  return next();
+  next();
 }
 
 /**
  * Validate ID parameter
  */
-export function validateId(paramName: string = 'id') {
+export function validateId(paramName = 'id') {
   return (req: Request, res: Response, next: NextFunction) => {
     const id = parseInt(req.params[paramName] ?? '', 10);
 
     if (isNaN(id) || id < 1) {
-      return sendValidationError(res, [
+      sendValidationError(res, [
         {
           field: paramName,
           message: 'Invalid ID',
           value: req.params[paramName],
         },
       ]);
+      return;
     }
 
     // Attach parsed ID to request
     req.idParsed = id;
 
-    return next();
+    next();
   };
 }

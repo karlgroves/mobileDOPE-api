@@ -13,6 +13,7 @@ This directory contains utility functions and helpers.
 - `pagination.ts` - Pagination helpers
 
 All utilities should:
+
 - Be pure functions when possible
 - Be unit tested
 - Have clear, descriptive names

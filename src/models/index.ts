@@ -8,11 +8,11 @@
 import sequelize from '../config/database';
 
 // Import models in dependency order
-import User from './User';
-import RifleProfile from './RifleProfile';
 import AmmoProfile from './AmmoProfile';
-import EnvironmentSnapshot from './EnvironmentSnapshot';
 import DOPELog from './DOPELog';
+import EnvironmentSnapshot from './EnvironmentSnapshot';
+import RifleProfile from './RifleProfile';
+import User from './User';
 
 // Define associations
 // Note: Individual model files already define belongsTo associations

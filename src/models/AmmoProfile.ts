@@ -1,7 +1,9 @@
-import { DataTypes, Model, Optional, Association } from 'sequelize';
+import { DataTypes, Model, type Optional, type Association } from 'sequelize';
+
 import sequelize from '../config/database';
-import User from './User';
+
 import RifleProfile from './RifleProfile';
+import User from './User';
 
 /**
  * AmmoProfile Model
@@ -57,7 +59,7 @@ class AmmoProfile extends Model<AmmoProfileAttributes, AmmoProfileCreationAttrib
   public readonly user?: User;
   public readonly rifle?: RifleProfile;
 
-  public static associations: {
+  public static override associations: {
     user: Association<AmmoProfile, User>;
     rifle: Association<AmmoProfile, RifleProfile>;
   };

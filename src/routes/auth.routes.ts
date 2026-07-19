@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { body } from 'express-validator';
 import rateLimit from 'express-rate-limit';
+import { body } from 'express-validator';
+
 import AuthController from '../controllers/AuthController';
-import { validate } from '../middlewares/validation';
 import { authenticate } from '../middlewares/auth';
 import { asyncHandler } from '../middlewares/errorHandler';
+import { validate } from '../middlewares/validation';
 
 /**
  * Authentication Routes
@@ -41,7 +42,7 @@ const passwordResetLimiter = rateLimit({
 
 /**
  * @route   POST /api/v1/auth/register
- * @desc    Register a new user
+ * @description    Register a new user
  * @access  Public
  */
 router.post(
@@ -65,7 +66,7 @@ router.post(
 
 /**
  * @route   POST /api/v1/auth/login
- * @desc    Login user
+ * @description    Login user
  * @access  Public
  */
 router.post(
@@ -80,7 +81,7 @@ router.post(
 
 /**
  * @route   POST /api/v1/auth/refresh
- * @desc    Refresh access token
+ * @description    Refresh access token
  * @access  Public
  */
 router.post(
@@ -91,7 +92,7 @@ router.post(
 
 /**
  * @route   POST /api/v1/auth/verify-email
- * @desc    Verify email with token
+ * @description    Verify email with token
  * @access  Public
  */
 router.post(
@@ -102,7 +103,7 @@ router.post(
 
 /**
  * @route   POST /api/v1/auth/forgot-password
- * @desc    Request password reset
+ * @description    Request password reset
  * @access  Public
  */
 router.post(
@@ -114,7 +115,7 @@ router.post(
 
 /**
  * @route   POST /api/v1/auth/reset-password
- * @desc    Reset password with token
+ * @description    Reset password with token
  * @access  Public
  */
 router.post(
@@ -132,7 +133,7 @@ router.post(
 
 /**
  * @route   POST /api/v1/auth/logout
- * @desc    Logout user
+ * @description    Logout user
  * @access  Private
  */
 router.post(
@@ -143,7 +144,7 @@ router.post(
 
 /**
  * @route   GET /api/v1/auth/me
- * @desc    Get current user profile
+ * @description    Get current user profile
  * @access  Private
  */
 router.get(

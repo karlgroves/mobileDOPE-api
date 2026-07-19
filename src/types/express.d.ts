@@ -9,7 +9,6 @@ import type User from '../models/User';
  * type-safely without casting through `any`.
  */
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace -- module augmentation requires the Express namespace
   namespace Express {
     interface Request {
       /** Authenticated user (set by `authenticate`). */
