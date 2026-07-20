@@ -43,9 +43,11 @@ export class AmmoProfileController {
   async getAll(req: Request, res: Response) {
     const userId = req.userId;
     const { page, limit, offset } = req.pagination!;
-    const rifle_id = req.query.rifle_id as string | undefined;
-    const manufacturer = req.query.manufacturer as string | undefined;
-    const search = req.query.search as string | undefined;
+    const { rifle_id, manufacturer, search } = req.query as {
+      rifle_id?: string;
+      manufacturer?: string;
+      search?: string;
+    };
 
     // Build query
     const where: Record<string | symbol, unknown> = { user_id: userId };

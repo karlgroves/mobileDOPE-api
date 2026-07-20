@@ -91,7 +91,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   /**
    * Hash a token with SHA-256 for secure storage
    */
-  private static hashToken(token: string): string {
+  private static _hashToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
 
@@ -101,7 +101,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
    */
   public async generateVerificationToken(): Promise<string> {
     const token = crypto.randomBytes(32).toString('hex');
-    this.email_verification_token = User.hashToken(token);
+    this.email_verification_token = User._hashToken(token);
     this.email_verification_expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     await this.save();
     return token;
@@ -113,7 +113,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
    */
   public async generatePasswordResetToken(): Promise<string> {
     const token = crypto.randomBytes(32).toString('hex');
-    this.password_reset_token = User.hashToken(token);
+    this.password_reset_token = User._hashToken(token);
     this.password_reset_expires = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
     await this.save();
     return token;
@@ -142,7 +142,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
    */
   public static async findByResetToken(plainToken: string): Promise<User | null> {
     return User.findOne({
-      where: { password_reset_token: User.hashToken(plainToken) },
+      where: { password_reset_token: User._hashToken(plainToken) },
     });
   }
 
@@ -151,7 +151,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
    */
   public static async findByVerificationToken(plainToken: string): Promise<User | null> {
     return User.findOne({
-      where: { email_verification_token: User.hashToken(plainToken) },
+      where: { email_verification_token: User._hashToken(plainToken) },
     });
   }
 

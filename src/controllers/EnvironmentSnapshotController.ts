@@ -48,10 +48,12 @@ export class EnvironmentSnapshotController {
   async getAll(req: Request, res: Response) {
     const userId = req.userId;
     const { page, limit, offset } = req.pagination!;
-    const temp_min = req.query.temp_min as string | undefined;
-    const temp_max = req.query.temp_max as string | undefined;
-    const date_from = req.query.date_from as string | undefined;
-    const date_to = req.query.date_to as string | undefined;
+    const { temp_min, temp_max, date_from, date_to } = req.query as {
+      temp_min?: string;
+      temp_max?: string;
+      date_from?: string;
+      date_to?: string;
+    };
 
     // Build query
     const where: Record<string | symbol, unknown> = { user_id: userId };
