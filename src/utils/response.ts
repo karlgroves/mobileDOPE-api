@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { type Response } from 'express';
 
 /**
  * Response Utilities
@@ -9,7 +9,7 @@ import { Response } from 'express';
 interface ApiResponse {
   success: boolean;
   message?: string;
-  data?: any;
+  data?: unknown;
   pagination?: {
     page: number;
     limit: number;
@@ -19,14 +19,22 @@ interface ApiResponse {
   timestamp: string;
 }
 
+interface ErrorResponse {
+  success: boolean;
+  message: string;
+  timestamp: string;
+  errors?: unknown[];
+  statusCode?: number;
+}
+
 /**
  * Send success response
  */
 export function sendSuccess(
   res: Response,
-  data?: any,
+  data?: unknown,
   message?: string,
-  statusCode: number = 200
+  statusCode = 200,
 ): Response {
   const response: ApiResponse = {
     success: true,
@@ -47,7 +55,7 @@ export function sendSuccess(
 /**
  * Send created response (201)
  */
-export function sendCreated(res: Response, data?: any, message?: string): Response {
+export function sendCreated(res: Response, data?: unknown, message?: string): Response {
   return sendSuccess(res, data, message || 'Resource created successfully', 201);
 }
 
@@ -63,11 +71,11 @@ export function sendNoContent(res: Response): Response {
  */
 export function sendPaginated(
   res: Response,
-  data: any[],
+  data: unknown[],
   page: number,
   limit: number,
   total: number,
-  message?: string
+  message?: string,
 ): Response {
   const response: ApiResponse = {
     success: true,
@@ -94,10 +102,10 @@ export function sendPaginated(
 export function sendError(
   res: Response,
   message: string,
-  statusCode: number = 500,
-  errors?: any[]
+  statusCode = 500,
+  errors?: unknown[],
 ): Response {
-  const response: any = {
+  const response: ErrorResponse = {
     success: false,
     message,
     timestamp: new Date().toISOString(),
@@ -118,7 +126,7 @@ export function sendError(
 /**
  * Send validation error response
  */
-export function sendValidationError(res: Response, errors: any[]): Response {
+export function sendValidationError(res: Response, errors: unknown[]): Response {
   return res.status(400).json({
     success: false,
     message: 'Validation failed',

@@ -1,8 +1,9 @@
-import { Request, Response } from 'express';
+import { type Request, type Response } from 'express';
+import { Op, type WhereOptions, QueryTypes } from 'sequelize';
+
 import EnvironmentSnapshot from '../models/EnvironmentSnapshot';
 import { NotFoundError } from '../utils/errors';
 import { sendSuccess, sendCreated, sendNoContent, sendPaginated } from '../utils/response';
-import { Op } from 'sequelize';
 
 /**
  * Environment Snapshot Controller
@@ -10,42 +11,78 @@ import { Op } from 'sequelize';
  * Handles CRUD operations for environmental condition snapshots.
  */
 
+interface EnvironmentSnapshotBody {
+  temperature: number;
+  humidity: number;
+  pressure: number;
+  altitude: number;
+  density_altitude?: number;
+  wind_speed: number;
+  wind_direction: number;
+  latitude?: number;
+  longitude?: number;
+  timestamp?: Date;
+}
+
+interface UsageCountRow {
+  count: number;
+}
+
+interface EnvironmentAverages {
+  snapshot_count: number;
+  avg_temperature: number | null;
+  min_temperature: number | null;
+  max_temperature: number | null;
+  avg_humidity: number | null;
+  avg_pressure: number | null;
+  avg_altitude: number | null;
+  avg_density_altitude: number | null;
+  avg_wind_speed: number | null;
+}
+
 export class EnvironmentSnapshotController {
   /**
    * Get all environment snapshots for authenticated user
    * GET /api/v1/environment
    */
   async getAll(req: Request, res: Response) {
-    const userId = (req as any).userId;
-    const { page, limit, offset } = (req as any).pagination;
-    const { temp_min, temp_max, date_from, date_to } = req.query;
+    const userId = req.userId;
+    const { page, limit, offset } = req.pagination!;
+    const { temp_min, temp_max, date_from, date_to } = req.query as {
+      temp_min?: string;
+      temp_max?: string;
+      date_from?: string;
+      date_to?: string;
+    };
 
     // Build query
-    const where: any = { user_id: userId };
+    const where: Record<string | symbol, unknown> = { user_id: userId };
 
     if (temp_min || temp_max) {
-      where.temperature = {};
+      const tempRange: Record<symbol, number> = {};
       if (temp_min) {
-        where.temperature[Op.gte] = temp_min;
+        tempRange[Op.gte] = parseFloat(temp_min);
       }
       if (temp_max) {
-        where.temperature[Op.lte] = temp_max;
+        tempRange[Op.lte] = parseFloat(temp_max);
       }
+      where.temperature = tempRange;
     }
 
     if (date_from || date_to) {
-      where.timestamp = {};
+      const timestampRange: Record<symbol, Date> = {};
       if (date_from) {
-        where.timestamp[Op.gte] = new Date(date_from as string);
+        timestampRange[Op.gte] = new Date(String(date_from));
       }
       if (date_to) {
-        where.timestamp[Op.lte] = new Date(date_to as string);
+        timestampRange[Op.lte] = new Date(String(date_to));
       }
+      where.timestamp = timestampRange;
     }
 
     // Get snapshots with pagination
     const { count, rows } = await EnvironmentSnapshot.findAndCountAll({
-      where,
+      where: where as WhereOptions,
       limit,
       offset,
       order: [['timestamp', 'DESC']],
@@ -59,8 +96,8 @@ export class EnvironmentSnapshotController {
    * GET /api/v1/environment/:id
    */
   async getById(req: Request, res: Response) {
-    const userId = (req as any).userId;
-    const envId = (req as any).idParsed;
+    const userId = req.userId;
+    const envId = req.idParsed;
 
     const snapshot = await EnvironmentSnapshot.findOne({
       where: {
@@ -81,12 +118,33 @@ export class EnvironmentSnapshotController {
    * POST /api/v1/environment
    */
   async create(req: Request, res: Response) {
-    const userId = (req as any).userId;
+    const userId = req.userId;
 
     // Density altitude will be auto-calculated by model hook
+    const {
+      temperature,
+      humidity,
+      pressure,
+      altitude,
+      density_altitude,
+      wind_speed,
+      wind_direction,
+      latitude,
+      longitude,
+      timestamp,
+    } = req.body as EnvironmentSnapshotBody;
     const snapshot = await EnvironmentSnapshot.create({
-      ...req.body,
-      user_id: userId,
+      temperature,
+      humidity,
+      pressure,
+      altitude,
+      density_altitude,
+      wind_speed,
+      wind_direction,
+      latitude,
+      longitude,
+      timestamp,
+      user_id: userId!,
     });
 
     return sendCreated(res, snapshot, 'Environment snapshot created successfully');
@@ -97,8 +155,8 @@ export class EnvironmentSnapshotController {
    * PUT /api/v1/environment/:id
    */
   async update(req: Request, res: Response) {
-    const userId = (req as any).userId;
-    const envId = (req as any).idParsed;
+    const userId = req.userId;
+    const envId = req.idParsed;
 
     const snapshot = await EnvironmentSnapshot.findOne({
       where: {
@@ -111,8 +169,31 @@ export class EnvironmentSnapshotController {
       throw new NotFoundError('Environment snapshot');
     }
 
-    // Update snapshot (density altitude will be recalculated if needed)
-    await snapshot.update(req.body);
+    // Update snapshot with allowed fields only (density altitude will be recalculated if needed)
+    const {
+      temperature,
+      humidity,
+      pressure,
+      altitude,
+      density_altitude,
+      wind_speed,
+      wind_direction,
+      latitude,
+      longitude,
+      timestamp,
+    } = req.body as Partial<EnvironmentSnapshotBody>;
+    await snapshot.update({
+      temperature,
+      humidity,
+      pressure,
+      altitude,
+      density_altitude,
+      wind_speed,
+      wind_direction,
+      latitude,
+      longitude,
+      timestamp,
+    });
 
     return sendSuccess(res, snapshot, 'Environment snapshot updated successfully');
   }
@@ -122,8 +203,8 @@ export class EnvironmentSnapshotController {
    * DELETE /api/v1/environment/:id
    */
   async delete(req: Request, res: Response) {
-    const userId = (req as any).userId;
-    const envId = (req as any).idParsed;
+    const userId = req.userId;
+    const envId = req.idParsed;
 
     const snapshot = await EnvironmentSnapshot.findOne({
       where: {
@@ -137,15 +218,15 @@ export class EnvironmentSnapshotController {
     }
 
     // Check if snapshot is used by any DOPE logs
-    const usageCount = await EnvironmentSnapshot.sequelize?.query(
+    const usageCount = await EnvironmentSnapshot.sequelize?.query<UsageCountRow>(
       'SELECT COUNT(*) as count FROM dope_logs WHERE environment_id = ?',
       {
         replacements: [envId],
-        type: 'SELECT',
-      }
+        type: QueryTypes.SELECT,
+      },
     );
 
-    const count = (usageCount as any)?.[0]?.count || 0;
+    const count = usageCount?.[0]?.count || 0;
 
     if (count > 0) {
       return res.status(409).json({
@@ -165,7 +246,7 @@ export class EnvironmentSnapshotController {
    * GET /api/v1/environment/current
    */
   async getCurrent(req: Request, res: Response) {
-    const userId = (req as any).userId;
+    const userId = req.userId;
 
     const snapshot = await EnvironmentSnapshot.findOne({
       where: {
@@ -190,7 +271,7 @@ export class EnvironmentSnapshotController {
    * GET /api/v1/environment/averages
    */
   async getAverages(req: Request, res: Response) {
-    const userId = (req as any).userId;
+    const userId = req.userId;
     const { date_from, date_to } = req.query;
 
     if (!date_from || !date_to) {
@@ -201,7 +282,7 @@ export class EnvironmentSnapshotController {
       });
     }
 
-    const averages = await EnvironmentSnapshot.sequelize?.query(
+    const averages = await EnvironmentSnapshot.sequelize?.query<EnvironmentAverages>(
       `
       SELECT
         COUNT(*) as snapshot_count,
@@ -224,8 +305,8 @@ export class EnvironmentSnapshotController {
           dateFrom: new Date(date_from as string),
           dateTo: new Date(date_to as string),
         },
-        type: 'SELECT',
-      }
+        type: QueryTypes.SELECT,
+      },
     );
 
     return sendSuccess(res, {

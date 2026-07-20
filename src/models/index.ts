@@ -8,11 +8,11 @@
 import sequelize from '../config/database';
 
 // Import models in dependency order
-import User from './User';
-import RifleProfile from './RifleProfile';
 import AmmoProfile from './AmmoProfile';
-import EnvironmentSnapshot from './EnvironmentSnapshot';
 import DOPELog from './DOPELog';
+import EnvironmentSnapshot from './EnvironmentSnapshot';
+import RifleProfile from './RifleProfile';
+import User from './User';
 
 // Define associations
 // Note: Individual model files already define belongsTo associations
@@ -59,14 +59,7 @@ EnvironmentSnapshot.hasMany(DOPELog, {
 });
 
 // Export models and sequelize instance
-export {
-  sequelize,
-  User,
-  RifleProfile,
-  AmmoProfile,
-  EnvironmentSnapshot,
-  DOPELog,
-};
+export { sequelize, User, RifleProfile, AmmoProfile, EnvironmentSnapshot, DOPELog };
 
 // Export default object with all models
 export default {

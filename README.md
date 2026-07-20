@@ -28,6 +28,10 @@ The Mobile DOPE API provides:
 - Node.js 22+ (optional, for local development without Docker)
 - Git
 
+> **Note:** `.npmrc` sets `engine-strict=true`, so `npm install` will **fail** on
+> Node < 20 or npm < 10 (see the `engines` field in `package.json`). Use a
+> matching toolchain (e.g. `nvm use`, which reads `.nvmrc`).
+
 ### Development with Docker (Recommended)
 
 ```bash
@@ -73,7 +77,7 @@ npm run dev
 
 ## Project Structure
 
-```
+```text
 api/
 ├── src/                      # Source code
 │   ├── config/               # Configuration files
@@ -111,10 +115,24 @@ api/
 
 ### Code Quality
 
-- `npm run lint` - Run ESLint
+- `npm run lint` - Run ESLint (flat config, `eslint.config.mjs`)
 - `npm run lint:fix` - Fix ESLint issues
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check code formatting
+- `npm run markdownlint` - Lint Markdown (`markdownlint-cli2`)
+- `npm run dupes` - Detect copy/paste duplication (`jscpd`)
+- `npm run check` - Lint + typecheck + markdownlint + dupes (parallel)
+- `npm run check:all` - Full local gate: `check` + `format:check` + tests
+- `npm run license:check` - Verify production dependency licenses
+- `npm run security:audit` - `npm audit` for production dependencies
+
+The `check`/`check:all` aggregate scripts use the `npm-run-all` binary, which is
+provided by the `npm-run-all2` dev dependency (a maintained fork — the binary
+name differs from the package name).
+
+The following require optional binaries installed via `scripts/bootstrap.sh`
+(`security:secrets` → gitleaks, `security:osv` → osv-scanner,
+`security:semgrep` → semgrep, `links` → lychee).
 
 ### Testing
 
@@ -167,29 +185,30 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 #### Authentication (`/v1/auth`)
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/v1/auth/register` | Register new user | Public |
-| POST | `/v1/auth/login` | Login user | Public |
-| POST | `/v1/auth/refresh` | Refresh access token | Public |
-| POST | `/v1/auth/verify-email` | Verify email with token | Public |
-| POST | `/v1/auth/forgot-password` | Request password reset | Public |
-| POST | `/v1/auth/reset-password` | Reset password | Public |
-| POST | `/v1/auth/logout` | Logout user | Private |
-| GET | `/v1/auth/me` | Get current user | Private |
+| Method | Endpoint                   | Description             | Auth    |
+| ------ | -------------------------- | ----------------------- | ------- |
+| POST   | `/v1/auth/register`        | Register new user       | Public  |
+| POST   | `/v1/auth/login`           | Login user              | Public  |
+| POST   | `/v1/auth/refresh`         | Refresh access token    | Public  |
+| POST   | `/v1/auth/verify-email`    | Verify email with token | Public  |
+| POST   | `/v1/auth/forgot-password` | Request password reset  | Public  |
+| POST   | `/v1/auth/reset-password`  | Reset password          | Public  |
+| POST   | `/v1/auth/logout`          | Logout user             | Private |
+| GET    | `/v1/auth/me`              | Get current user        | Private |
 
 #### Rifle Profiles (`/v1/rifles`)
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/v1/rifles` | List rifles | Private |
-| GET | `/v1/rifles/:id` | Get rifle | Private |
-| GET | `/v1/rifles/:id/stats` | Get rifle stats | Private |
-| POST | `/v1/rifles` | Create rifle | Private |
-| PUT | `/v1/rifles/:id` | Update rifle | Private |
-| DELETE | `/v1/rifles/:id` | Delete rifle | Private |
+| Method | Endpoint               | Description     | Auth    |
+| ------ | ---------------------- | --------------- | ------- |
+| GET    | `/v1/rifles`           | List rifles     | Private |
+| GET    | `/v1/rifles/:id`       | Get rifle       | Private |
+| GET    | `/v1/rifles/:id/stats` | Get rifle stats | Private |
+| POST   | `/v1/rifles`           | Create rifle    | Private |
+| PUT    | `/v1/rifles/:id`       | Update rifle    | Private |
+| DELETE | `/v1/rifles/:id`       | Delete rifle    | Private |
 
 **Query Parameters** (List):
+
 - `page` (default: 1) - Page number
 - `limit` (default: 10, max: 100) - Items per page
 - `caliber` - Filter by caliber
@@ -197,16 +216,17 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 #### Ammunition Profiles (`/v1/ammo`)
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/v1/ammo` | List ammo | Private |
-| GET | `/v1/ammo/:id` | Get ammo | Private |
-| GET | `/v1/ammo/:id/stats` | Get ammo stats | Private |
-| POST | `/v1/ammo` | Create ammo | Private |
-| PUT | `/v1/ammo/:id` | Update ammo | Private |
-| DELETE | `/v1/ammo/:id` | Delete ammo | Private |
+| Method | Endpoint             | Description    | Auth    |
+| ------ | -------------------- | -------------- | ------- |
+| GET    | `/v1/ammo`           | List ammo      | Private |
+| GET    | `/v1/ammo/:id`       | Get ammo       | Private |
+| GET    | `/v1/ammo/:id/stats` | Get ammo stats | Private |
+| POST   | `/v1/ammo`           | Create ammo    | Private |
+| PUT    | `/v1/ammo/:id`       | Update ammo    | Private |
+| DELETE | `/v1/ammo/:id`       | Delete ammo    | Private |
 
 **Query Parameters** (List):
+
 - `page` - Page number
 - `limit` - Items per page
 - `rifle_id` - Filter by rifle
@@ -215,16 +235,17 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 #### DOPE Logs (`/v1/dope`)
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/v1/dope` | List logs | Private |
-| GET | `/v1/dope/:id` | Get log | Private |
-| GET | `/v1/dope/card` | Get DOPE card | Private |
-| POST | `/v1/dope` | Create log | Private |
-| PUT | `/v1/dope/:id` | Update log | Private |
-| DELETE | `/v1/dope/:id` | Delete log | Private |
+| Method | Endpoint        | Description   | Auth    |
+| ------ | --------------- | ------------- | ------- |
+| GET    | `/v1/dope`      | List logs     | Private |
+| GET    | `/v1/dope/:id`  | Get log       | Private |
+| GET    | `/v1/dope/card` | Get DOPE card | Private |
+| POST   | `/v1/dope`      | Create log    | Private |
+| PUT    | `/v1/dope/:id`  | Update log    | Private |
+| DELETE | `/v1/dope/:id`  | Delete log    | Private |
 
 **Query Parameters** (List):
+
 - `page` - Page number
 - `limit` - Items per page
 - `rifle_id` - Filter by rifle
@@ -235,6 +256,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 - `sort` - Sort order (distance_asc/distance_desc/accuracy/date)
 
 **Query Parameters** (DOPE Card):
+
 - `rifle_id` (required) - Rifle ID
 - `ammo_id` (required) - Ammo ID
 
@@ -296,6 +318,7 @@ curl -X GET "http://localhost:3000/api/v1/dope/card?rifle_id=1&ammo_id=1" \
 All responses follow this format:
 
 **Success:**
+
 ```json
 {
   "success": true,
@@ -305,6 +328,7 @@ All responses follow this format:
 ```
 
 **Paginated:**
+
 ```json
 {
   "success": true,
@@ -320,6 +344,7 @@ All responses follow this format:
 ```
 
 **Error:**
+
 ```json
 {
   "success": false,
@@ -360,6 +385,22 @@ All development must follow the standards documented in `/standards`:
 - [Testing Standards](./standards/testing-standards.md)
 - [Deployment Procedures](./standards/deployment-procedures.md)
 
+### Code quality & local gates
+
+Quality is enforced locally through Husky hooks rather than GitHub Actions (see
+[ADR-0002](./docs/adr/0002-no-new-github-actions.md)). `npm install` wires the hooks
+via the `prepare` script.
+
+- **pre-commit** - `lint-staged` (ESLint + Prettier + markdownlint on staged files),
+  staged type-check, and an optional gitleaks scan.
+- **commit-msg** - Conventional Commits enforced by commitlint.
+- **pre-push** - `npm run check` (lint, typecheck, markdownlint, dupes).
+- **post-merge** - reinstall + audit when `package-lock.json` changes.
+
+Run `npm run check:all` to reproduce the full gate locally on a clean clone. Install
+the optional security binaries with `bash scripts/bootstrap.sh`. Key tooling decisions
+are recorded as ADRs in [`docs/adr/`](./docs/adr/).
+
 ## Integration with Mobile App
 
 The API integrates with the React Native mobile app located in `/app`. Key integration points:
@@ -397,6 +438,7 @@ doctl apps create --spec .do/app.yaml
 ## Support
 
 For issues or questions:
+
 - Review [standards documentation](./standards/)
 - Check existing GitHub issues
 - Create a new issue with detailed information

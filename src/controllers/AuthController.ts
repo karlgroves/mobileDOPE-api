@@ -1,9 +1,10 @@
-import { Request, Response } from 'express';
+import { type Request, type Response } from 'express';
+
 import User from '../models/User';
-import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
 import { AuthenticationError, ConflictError, NotFoundError } from '../utils/errors';
-import { sendSuccess, sendCreated, sendError } from '../utils/response';
+import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
 import { logAuth } from '../utils/logger';
+import { sendSuccess, sendCreated } from '../utils/response';
 
 /**
  * Authentication Controller
@@ -11,13 +12,41 @@ import { logAuth } from '../utils/logger';
  * Handles user registration, login, token refresh, and password reset.
  */
 
+interface RegisterBody {
+  email: string;
+  password: string;
+  name: string;
+}
+
+interface LoginBody {
+  email: string;
+  password: string;
+}
+
+interface RefreshBody {
+  refreshToken?: string;
+}
+
+interface VerifyEmailBody {
+  token: string;
+}
+
+interface ForgotPasswordBody {
+  email: string;
+}
+
+interface ResetPasswordBody {
+  token: string;
+  password: string;
+}
+
 export class AuthController {
   /**
    * Register new user
    * POST /api/v1/auth/register
    */
   async register(req: Request, res: Response) {
-    const { email, password, name } = req.body;
+    const { email, password, name } = req.body as RegisterBody;
 
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -26,26 +55,26 @@ export class AuthController {
     }
 
     // Hash password
-    const password_hash = await User.hashPassword(password);
+    const passwordHash = await User.hashPassword(password);
 
     // Create user
     const user = await User.create({
       email,
-      password_hash,
+      password_hash: passwordHash,
       name,
       is_active: true,
       is_verified: false,
     });
 
     // Generate verification token
-    const verificationToken = await user.generateVerificationToken();
+    await user.generateVerificationToken();
 
     logAuth('user_registered', user.id, { email });
 
-    // TODO: Send verification email
+    // TODO: Send verification email with verificationToken
 
     // Generate tokens
-    const tokens = generateTokenPair(user.id, user.email);
+    const tokens = generateTokenPair(user.id, user.email, user.token_version);
 
     return sendCreated(res, {
       user: user.toJSON(),
@@ -59,7 +88,7 @@ export class AuthController {
    * POST /api/v1/auth/login
    */
   async login(req: Request, res: Response) {
-    const { email, password } = req.body;
+    const { email, password } = req.body as LoginBody;
 
     // Find user
     const user = await User.findOne({ where: { email } });
@@ -84,7 +113,7 @@ export class AuthController {
     logAuth('user_login', user.id, { email });
 
     // Generate tokens
-    const tokens = generateTokenPair(user.id, user.email);
+    const tokens = generateTokenPair(user.id, user.email, user.token_version);
 
     return sendSuccess(res, {
       user: user.toJSON(),
@@ -97,7 +126,7 @@ export class AuthController {
    * POST /api/v1/auth/refresh
    */
   async refresh(req: Request, res: Response) {
-    const { refreshToken } = req.body;
+    const { refreshToken } = req.body as RefreshBody;
 
     if (!refreshToken) {
       throw new AuthenticationError('Refresh token required');
@@ -117,10 +146,15 @@ export class AuthController {
       throw new AuthenticationError('Account is inactive');
     }
 
+    // Check token version for revocation
+    if (payload.tokenVersion !== undefined && payload.tokenVersion < user.token_version) {
+      throw new AuthenticationError('Refresh token has been revoked');
+    }
+
     logAuth('token_refreshed', user.id);
 
     // Generate new tokens
-    const tokens = generateTokenPair(user.id, user.email);
+    const tokens = generateTokenPair(user.id, user.email, user.token_version);
 
     return sendSuccess(res, tokens);
   }
@@ -130,14 +164,10 @@ export class AuthController {
    * POST /api/v1/auth/verify-email
    */
   async verifyEmail(req: Request, res: Response) {
-    const { token } = req.body;
+    const { token } = req.body as VerifyEmailBody;
 
-    // Find user with verification token
-    const user = await User.findOne({
-      where: {
-        email_verification_token: token,
-      },
-    });
+    // Find user with verification token (token is hashed for storage)
+    const user = await User.findByVerificationToken(token);
 
     if (!user) {
       throw new NotFoundError('Invalid or expired verification token');
@@ -164,7 +194,7 @@ export class AuthController {
    * POST /api/v1/auth/forgot-password
    */
   async forgotPassword(req: Request, res: Response) {
-    const { email } = req.body;
+    const { email } = req.body as ForgotPasswordBody;
 
     // Find user
     const user = await User.findOne({ where: { email } });
@@ -175,11 +205,11 @@ export class AuthController {
     }
 
     // Generate reset token
-    const resetToken = await user.generatePasswordResetToken();
+    await user.generatePasswordResetToken();
 
     logAuth('password_reset_requested', user.id, { email });
 
-    // TODO: Send password reset email
+    // TODO: Send password reset email with resetToken
 
     return sendSuccess(res, undefined, 'If the email exists, a reset link has been sent');
   }
@@ -189,14 +219,10 @@ export class AuthController {
    * POST /api/v1/auth/reset-password
    */
   async resetPassword(req: Request, res: Response) {
-    const { token, password } = req.body;
+    const { token, password } = req.body as ResetPasswordBody;
 
-    // Find user with reset token
-    const user = await User.findOne({
-      where: {
-        password_reset_token: token,
-      },
-    });
+    // Find user with reset token (token is hashed for storage)
+    const user = await User.findByResetToken(token);
 
     if (!user) {
       throw new NotFoundError('Invalid or expired reset token');
@@ -210,8 +236,9 @@ export class AuthController {
     // Hash new password
     user.password_hash = await User.hashPassword(password);
 
-    // Clear reset token
+    // Clear reset token and revoke all existing sessions
     await user.clearPasswordResetToken();
+    await user.revokeAllTokens();
 
     logAuth('password_reset', user.id, { email: user.email });
 
@@ -223,14 +250,14 @@ export class AuthController {
    * POST /api/v1/auth/logout
    */
   async logout(req: Request, res: Response) {
-    const userId = (req as any).userId;
+    const user = req.user;
 
-    if (userId) {
-      logAuth('user_logout', userId);
+    if (user) {
+      // Revoke all existing tokens by incrementing token_version
+      await user.revokeAllTokens();
+      logAuth('user_logout', user.id);
     }
 
-    // With JWT, logout is handled client-side by removing tokens
-    // In the future, we could implement token blacklisting here
     return sendSuccess(res, undefined, 'Logged out successfully');
   }
 
@@ -238,11 +265,11 @@ export class AuthController {
    * Get current user profile
    * GET /api/v1/auth/me
    */
-  async getProfile(req: Request, res: Response) {
-    const user = (req as any).user;
+  getProfile(req: Request, res: Response) {
+    const user = req.user;
 
     return sendSuccess(res, {
-      user: user.toJSON(),
+      user: user?.toJSON(),
     });
   }
 }

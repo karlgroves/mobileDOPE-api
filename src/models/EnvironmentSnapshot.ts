@@ -1,5 +1,7 @@
-import { DataTypes, Model, Optional, Association } from 'sequelize';
+import { DataTypes, Model, type Optional, type Association } from 'sequelize';
+
 import sequelize from '../config/database';
+
 import User from './User';
 
 /**
@@ -24,8 +26,12 @@ interface EnvironmentSnapshotAttributes {
   timestamp?: Date;
 }
 
-interface EnvironmentSnapshotCreationAttributes extends Optional<EnvironmentSnapshotAttributes, 'id' | 'timestamp'> {}
+type EnvironmentSnapshotCreationAttributes = Optional<
+  EnvironmentSnapshotAttributes,
+  'id' | 'timestamp' | 'density_altitude'
+>;
 
+// prettier-ignore
 class EnvironmentSnapshot extends Model<EnvironmentSnapshotAttributes, EnvironmentSnapshotCreationAttributes> implements EnvironmentSnapshotAttributes {
   public id!: number;
   public user_id!: number;
@@ -43,7 +49,7 @@ class EnvironmentSnapshot extends Model<EnvironmentSnapshotAttributes, Environme
   // Associations
   public readonly user?: User;
 
-  public static associations: {
+  public static override associations: {
     user: Association<EnvironmentSnapshot, User>;
   };
 
@@ -55,7 +61,7 @@ class EnvironmentSnapshot extends Model<EnvironmentSnapshotAttributes, Environme
   public static calculateDensityAltitude(
     temperature: number,
     pressure: number,
-    altitude: number
+    altitude: number,
   ): number {
     const standardPressure = 29.92; // inHg at sea level
     const pressureAltitude = altitude + 1000 * (standardPressure - pressure);
@@ -69,9 +75,26 @@ class EnvironmentSnapshot extends Model<EnvironmentSnapshotAttributes, Environme
    * Get wind direction as compass bearing
    */
   public getWindBearing(): string {
-    const bearings = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    const bearings = [
+      'N',
+      'NNE',
+      'NE',
+      'ENE',
+      'E',
+      'ESE',
+      'SE',
+      'SSE',
+      'S',
+      'SSW',
+      'SW',
+      'WSW',
+      'W',
+      'WNW',
+      'NW',
+      'NNW',
+    ];
     const index = Math.round(this.wind_direction / 22.5) % 16;
-    return bearings[index];
+    return bearings[index] ?? 'N';
   }
 
   /**
@@ -184,10 +207,7 @@ EnvironmentSnapshot.init(
     tableName: 'environment_snapshots',
     timestamps: false, // Uses custom timestamp field
     underscored: true,
-    indexes: [
-      { fields: ['user_id'] },
-      { fields: ['timestamp'] },
-    ],
+    indexes: [{ fields: ['user_id'] }, { fields: ['timestamp'] }],
     hooks: {
       beforeValidate: (snapshot: EnvironmentSnapshot) => {
         // Auto-calculate density altitude if not provided
@@ -195,12 +215,12 @@ EnvironmentSnapshot.init(
           snapshot.density_altitude = EnvironmentSnapshot.calculateDensityAltitude(
             snapshot.temperature,
             snapshot.pressure,
-            snapshot.altitude
+            snapshot.altitude,
           );
         }
       },
     },
-  }
+  },
 );
 
 // Define associations

@@ -14,6 +14,7 @@ This directory contains business logic services.
 - `ExportService.ts` - Data export (CSV, JSON)
 
 Services should:
+
 - Contain business logic separated from controllers
 - Be unit testable
 - Return results or throw custom errors

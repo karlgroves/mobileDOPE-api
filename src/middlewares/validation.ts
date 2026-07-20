@@ -1,6 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import { validationResult, ValidationChain } from 'express-validator';
+import { type Request, type Response, type NextFunction } from 'express';
+import { validationResult, type ValidationChain } from 'express-validator';
+
 import { sendValidationError } from '../utils/response';
+
+import { asyncHandler } from './errorHandler';
 
 /**
  * Validation Middleware
@@ -12,7 +15,7 @@ import { sendValidationError } from '../utils/response';
  * Validate request using express-validator chains
  */
 export function validate(validations: ValidationChain[]) {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     // Run all validations
     await Promise.all(validations.map((validation) => validation.run(req)));
 
@@ -20,36 +23,47 @@ export function validate(validations: ValidationChain[]) {
     const errors = validationResult(req);
 
     if (errors.isEmpty()) {
-      return next();
+      next();
+      return;
     }
 
-    // Format errors
-    const formattedErrors = errors.array().map((error: any) => ({
-      field: error.path || error.param,
-      message: error.msg,
-      value: error.value,
+    // Format errors (exclude submitted values to prevent leaking sensitive data)
+    const formattedErrors = errors.array().map((error) => ({
+      field: 'path' in error ? error.path : undefined,
+      message: error.msg as string,
     }));
 
     return sendValidationError(res, formattedErrors);
-  };
+  });
 }
 
 /**
  * Sanitize input to prevent XSS attacks
  */
-export function sanitizeInput(req: Request, res: Response, next: NextFunction) {
-  // Remove any HTML tags from string inputs
-  const sanitizeValue = (value: any): any => {
+export function sanitizeInput(req: Request, _res: Response, next: NextFunction) {
+  // Strip HTML tags and dangerous characters from string inputs
+  const sanitizeValue = (value: unknown): unknown => {
     if (typeof value === 'string') {
-      return value.replace(/<[^>]*>/g, '');
+      // Replace HTML entities and strip tags using iterative approach
+      // to prevent bypass via nested tags like <scr<script>ipt>
+      let sanitized = value;
+      let prev;
+      do {
+        prev = sanitized;
+        sanitized = sanitized.replace(/<[^>]*>/g, '');
+      } while (sanitized !== prev);
+      return sanitized;
     }
     if (Array.isArray(value)) {
       return value.map(sanitizeValue);
     }
     if (typeof value === 'object' && value !== null) {
-      const sanitized: any = {};
+      const sanitized: Record<string, unknown> = {};
       for (const key in value) {
-        sanitized[key] = sanitizeValue(value[key]);
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+          continue; // Prevent prototype pollution
+        }
+        sanitized[key] = sanitizeValue((value as Record<string, unknown>)[key]);
       }
       return sanitized;
     }
@@ -61,11 +75,11 @@ export function sanitizeInput(req: Request, res: Response, next: NextFunction) {
   }
 
   if (req.query) {
-    req.query = sanitizeValue(req.query);
+    req.query = sanitizeValue(req.query) as typeof req.query;
   }
 
   if (req.params) {
-    req.params = sanitizeValue(req.params);
+    req.params = sanitizeValue(req.params) as typeof req.params;
   }
 
   next();
@@ -80,28 +94,30 @@ export function validatePagination(req: Request, res: Response, next: NextFuncti
 
   // Validate page
   if (page < 1) {
-    return sendValidationError(res, [
+    sendValidationError(res, [
       {
         field: 'page',
         message: 'Page must be greater than 0',
         value: page,
       },
     ]);
+    return;
   }
 
   // Validate limit
   if (limit < 1 || limit > 100) {
-    return sendValidationError(res, [
+    sendValidationError(res, [
       {
         field: 'limit',
         message: 'Limit must be between 1 and 100',
         value: limit,
       },
     ]);
+    return;
   }
 
   // Attach to request
-  (req as any).pagination = {
+  req.pagination = {
     page,
     limit,
     offset: (page - 1) * limit,
@@ -113,22 +129,23 @@ export function validatePagination(req: Request, res: Response, next: NextFuncti
 /**
  * Validate ID parameter
  */
-export function validateId(paramName: string = 'id') {
+export function validateId(paramName = 'id') {
   return (req: Request, res: Response, next: NextFunction) => {
-    const id = parseInt(req.params[paramName], 10);
+    const id = parseInt(req.params[paramName] ?? '', 10);
 
     if (isNaN(id) || id < 1) {
-      return sendValidationError(res, [
+      sendValidationError(res, [
         {
           field: paramName,
           message: 'Invalid ID',
           value: req.params[paramName],
         },
       ]);
+      return;
     }
 
     // Attach parsed ID to request
-    (req as any)[`${paramName}Parsed`] = id;
+    req.idParsed = id;
 
     next();
   };

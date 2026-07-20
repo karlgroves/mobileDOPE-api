@@ -1,0 +1,8 @@
+# Full local quality gate before pushing: lint, typecheck, markdownlint, dupes,
+# format check, and the test suite (TDD policy — see CLAUDE.md).
+npm run check:all
+
+# Optional secret scan over history. Skips gracefully when not installed.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks detect --no-banner --redact || exit 1
+fi

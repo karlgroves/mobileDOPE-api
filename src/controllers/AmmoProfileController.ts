@@ -1,9 +1,10 @@
-import { Request, Response } from 'express';
+import { type Request, type Response } from 'express';
+import { Op, type WhereOptions, QueryTypes } from 'sequelize';
+
 import AmmoProfile from '../models/AmmoProfile';
 import RifleProfile from '../models/RifleProfile';
 import { NotFoundError, ValidationError } from '../utils/errors';
 import { sendSuccess, sendCreated, sendNoContent, sendPaginated } from '../utils/response';
-import { Op } from 'sequelize';
 
 /**
  * Ammo Profile Controller
@@ -11,38 +12,66 @@ import { Op } from 'sequelize';
  * Handles CRUD operations for ammunition profiles.
  */
 
+interface AmmoProfileBody {
+  rifle_id: number;
+  name: string;
+  manufacturer: string;
+  bullet_weight: number;
+  bullet_type: string;
+  ballistic_coefficient_g1: number;
+  ballistic_coefficient_g7: number;
+  muzzle_velocity: number;
+  powder_type?: string;
+  powder_weight?: number;
+  lot_number?: string;
+  notes?: string;
+}
+
+interface AmmoStats {
+  dope_count: number;
+  min_distance: number | null;
+  max_distance: number | null;
+  avg_accuracy: number | null;
+  avg_group_size: number | null;
+}
+
 export class AmmoProfileController {
   /**
    * Get all ammo profiles for authenticated user
    * GET /api/v1/ammo
    */
   async getAll(req: Request, res: Response) {
-    const userId = (req as any).userId;
-    const { page, limit, offset } = (req as any).pagination;
-    const { rifle_id, manufacturer, search } = req.query;
+    const userId = req.userId;
+    const { page, limit, offset } = req.pagination!;
+    const { rifle_id, manufacturer, search } = req.query as {
+      rifle_id?: string;
+      manufacturer?: string;
+      search?: string;
+    };
 
     // Build query
-    const where: any = { user_id: userId };
+    const where: Record<string | symbol, unknown> = { user_id: userId };
 
     if (rifle_id) {
-      where.rifle_id = rifle_id;
+      where.rifle_id = parseInt(rifle_id, 10);
     }
 
     if (manufacturer) {
-      where.manufacturer = manufacturer;
+      where.manufacturer = String(manufacturer);
     }
 
     if (search) {
+      const searchStr = String(search);
       where[Op.or] = [
-        { name: { [Op.like]: `%${search}%` } },
-        { manufacturer: { [Op.like]: `%${search}%` } },
-        { bullet_type: { [Op.like]: `%${search}%` } },
+        { name: { [Op.like]: `%${searchStr}%` } },
+        { manufacturer: { [Op.like]: `%${searchStr}%` } },
+        { bullet_type: { [Op.like]: `%${searchStr}%` } },
       ];
     }
 
     // Get ammo with pagination and include rifle
     const { count, rows } = await AmmoProfile.findAndCountAll({
-      where,
+      where: where as WhereOptions,
       limit,
       offset,
       order: [['created_at', 'DESC']],
@@ -63,8 +92,8 @@ export class AmmoProfileController {
    * GET /api/v1/ammo/:id
    */
   async getById(req: Request, res: Response) {
-    const userId = (req as any).userId;
-    const ammoId = (req as any).idParsed;
+    const userId = req.userId;
+    const ammoId = req.idParsed;
 
     const ammo = await AmmoProfile.findOne({
       where: {
@@ -92,12 +121,13 @@ export class AmmoProfileController {
    * POST /api/v1/ammo
    */
   async create(req: Request, res: Response) {
-    const userId = (req as any).userId;
+    const userId = req.userId;
+    const body = req.body as AmmoProfileBody;
 
     // Verify rifle belongs to user
     const rifle = await RifleProfile.findOne({
       where: {
-        id: req.body.rifle_id,
+        id: body.rifle_id,
         user_id: userId,
       },
     });
@@ -106,9 +136,34 @@ export class AmmoProfileController {
       throw new ValidationError('Invalid rifle_id: Rifle not found or does not belong to you');
     }
 
+    const {
+      rifle_id,
+      name,
+      manufacturer,
+      bullet_weight,
+      bullet_type,
+      ballistic_coefficient_g1,
+      ballistic_coefficient_g7,
+      muzzle_velocity,
+      powder_type,
+      powder_weight,
+      lot_number,
+      notes,
+    } = body;
     const ammo = await AmmoProfile.create({
-      ...req.body,
-      user_id: userId,
+      rifle_id,
+      name,
+      manufacturer,
+      bullet_weight,
+      bullet_type,
+      ballistic_coefficient_g1,
+      ballistic_coefficient_g7,
+      muzzle_velocity,
+      powder_type,
+      powder_weight,
+      lot_number,
+      notes,
+      user_id: userId!,
     });
 
     // Load rifle relationship
@@ -130,8 +185,9 @@ export class AmmoProfileController {
    * PUT /api/v1/ammo/:id
    */
   async update(req: Request, res: Response) {
-    const userId = (req as any).userId;
-    const ammoId = (req as any).idParsed;
+    const userId = req.userId;
+    const ammoId = req.idParsed;
+    const body = req.body as Partial<AmmoProfileBody>;
 
     const ammo = await AmmoProfile.findOne({
       where: {
@@ -145,10 +201,10 @@ export class AmmoProfileController {
     }
 
     // If updating rifle_id, verify it belongs to user
-    if (req.body.rifle_id && req.body.rifle_id !== ammo.rifle_id) {
+    if (body.rifle_id && body.rifle_id !== ammo.rifle_id) {
       const rifle = await RifleProfile.findOne({
         where: {
-          id: req.body.rifle_id,
+          id: body.rifle_id,
           user_id: userId,
         },
       });
@@ -158,8 +214,35 @@ export class AmmoProfileController {
       }
     }
 
-    // Update ammo
-    await ammo.update(req.body);
+    // Update ammo with allowed fields only
+    const {
+      rifle_id,
+      name,
+      manufacturer,
+      bullet_weight,
+      bullet_type,
+      ballistic_coefficient_g1,
+      ballistic_coefficient_g7,
+      muzzle_velocity,
+      powder_type,
+      powder_weight,
+      lot_number,
+      notes,
+    } = body;
+    await ammo.update({
+      rifle_id,
+      name,
+      manufacturer,
+      bullet_weight,
+      bullet_type,
+      ballistic_coefficient_g1,
+      ballistic_coefficient_g7,
+      muzzle_velocity,
+      powder_type,
+      powder_weight,
+      lot_number,
+      notes,
+    });
 
     // Reload with rifle
     await ammo.reload({
@@ -180,8 +263,8 @@ export class AmmoProfileController {
    * DELETE /api/v1/ammo/:id
    */
   async delete(req: Request, res: Response) {
-    const userId = (req as any).userId;
-    const ammoId = (req as any).idParsed;
+    const userId = req.userId;
+    const ammoId = req.idParsed;
 
     const ammo = await AmmoProfile.findOne({
       where: {
@@ -204,8 +287,8 @@ export class AmmoProfileController {
    * GET /api/v1/ammo/:id/stats
    */
   async getStats(req: Request, res: Response) {
-    const userId = (req as any).userId;
-    const ammoId = (req as any).idParsed;
+    const userId = req.userId;
+    const ammoId = req.idParsed;
 
     const ammo = await AmmoProfile.findOne({
       where: {
@@ -226,7 +309,7 @@ export class AmmoProfileController {
     }
 
     // Get DOPE log statistics
-    const stats = await AmmoProfile.sequelize?.query(
+    const stats = await AmmoProfile.sequelize?.query<AmmoStats>(
       `
       SELECT
         COUNT(*) as dope_count,
@@ -239,8 +322,8 @@ export class AmmoProfileController {
       `,
       {
         replacements: { ammoId },
-        type: 'SELECT',
-      }
+        type: QueryTypes.SELECT,
+      },
     );
 
     return sendSuccess(res, {

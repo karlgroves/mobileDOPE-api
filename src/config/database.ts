@@ -1,5 +1,7 @@
-import { Sequelize, Options } from 'sequelize';
 import dotenv from 'dotenv';
+import { Sequelize, type Options } from 'sequelize';
+
+import logger from '../utils/logger';
 
 dotenv.config();
 
@@ -12,13 +14,27 @@ dotenv.config();
 const isProduction = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
 
+const sqlLogger = (sql: string): void => {
+  // bunyan emits this only when the configured level is debug or lower.
+  logger.debug(sql);
+};
+
+// Validate required env vars in production
+if (isProduction) {
+  const required = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables in production: ${missing.join(', ')}`);
+  }
+}
+
 // Database connection parameters
 const dbConfig: Options = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '3306', 10),
   database: process.env.DB_NAME || 'mobile_dope_dev',
   username: process.env.DB_USER || 'api_user',
-  password: process.env.DB_PASSWORD || 'dev_password_changeme',
+  password: process.env.DB_PASSWORD || '',
   dialect: 'mysql',
 
   // MySQL 9.x optimizations
@@ -26,8 +42,6 @@ const dbConfig: Options = {
     charset: 'utf8mb4',
     collate: 'utf8mb4_0900_ai_ci',
     connectTimeout: 10000,
-    // Enable multiple statements for migrations
-    multipleStatements: true,
     // SSL configuration for production (Digital Ocean requires SSL)
     ...(isProduction && {
       ssl: {
@@ -46,11 +60,7 @@ const dbConfig: Options = {
   },
 
   // Logging configuration
-  logging: isTest ? false : (sql: string) => {
-    if (process.env.LOG_LEVEL === 'debug') {
-      console.log('[Sequelize]', sql);
-    }
-  },
+  logging: isTest ? false : sqlLogger,
 
   // Timezone configuration (store all dates as UTC)
   timezone: '+00:00',
@@ -99,18 +109,19 @@ const sequelize = new Sequelize(dbConfig);
 export async function testConnection(): Promise<boolean> {
   try {
     await sequelize.authenticate();
-    console.log('✓ Database connection established successfully');
+    logger.info('✓ Database connection established successfully');
 
     // Log MySQL version in development
     if (!isProduction) {
       const [results] = await sequelize.query('SELECT VERSION() as version');
-      const version = (results as any)[0]?.version;
-      console.log(`✓ MySQL version: ${version}`);
+      const versionRows = results as { version?: string }[];
+      const version = versionRows[0]?.version;
+      logger.info(`✓ MySQL version: ${version}`);
     }
 
     return true;
   } catch (error) {
-    console.error('✗ Unable to connect to database:', error);
+    logger.error({ err: error }, '✗ Unable to connect to database');
     return false;
   }
 }
@@ -121,9 +132,9 @@ export async function testConnection(): Promise<boolean> {
 export async function closeConnection(): Promise<void> {
   try {
     await sequelize.close();
-    console.log('✓ Database connection closed');
+    logger.info('✓ Database connection closed');
   } catch (error) {
-    console.error('✗ Error closing database connection:', error);
+    logger.error({ err: error }, '✗ Error closing database connection');
   }
 }
 
@@ -138,9 +149,9 @@ export async function syncDatabase(force = false): Promise<void> {
 
   try {
     await sequelize.sync({ force, alter: !force && !isProduction });
-    console.log(`✓ Database synced ${force ? '(forced)' : '(altered)'}`);
+    logger.info(`✓ Database synced ${force ? '(forced)' : '(altered)'}`);
   } catch (error) {
-    console.error('✗ Error syncing database:', error);
+    logger.error({ err: error }, '✗ Error syncing database');
     throw error;
   }
 }

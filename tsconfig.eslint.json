@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // Broaden rootDir beyond ./src so tests/ can be type-checked here (used by
+    // both ESLint type-aware linting and `npm run typecheck`). noEmit, so this
+    // does not affect the build output produced by tsconfig.json.
+    "rootDir": "."
+  },
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

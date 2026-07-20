@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { body, query } from 'express-validator';
+
 import RifleProfileController from '../controllers/RifleProfileController';
-import { validate, validatePagination, validateId } from '../middlewares/validation';
 import { authenticate } from '../middlewares/auth';
 import { asyncHandler } from '../middlewares/errorHandler';
+import { validate, validatePagination, validateId } from '../middlewares/validation';
 
 /**
  * Rifle Profile Routes
@@ -14,11 +15,11 @@ import { asyncHandler } from '../middlewares/errorHandler';
 const router = Router();
 
 // All rifle routes require authentication
-router.use(authenticate);
+router.use(asyncHandler(authenticate));
 
 /**
  * @route   GET /api/v1/rifles
- * @desc    Get all rifle profiles for authenticated user
+ * @description    Get all rifle profiles for authenticated user
  * @access  Private
  */
 router.get(
@@ -28,34 +29,34 @@ router.get(
     query('caliber').optional().trim().isLength({ max: 100 }),
     query('search').optional().trim().isLength({ max: 255 }),
   ]),
-  asyncHandler(RifleProfileController.getAll.bind(RifleProfileController))
+  asyncHandler(RifleProfileController.getAll.bind(RifleProfileController)),
 );
 
 /**
  * @route   GET /api/v1/rifles/:id
- * @desc    Get single rifle profile
+ * @description    Get single rifle profile
  * @access  Private
  */
 router.get(
   '/:id',
   validateId('id'),
-  asyncHandler(RifleProfileController.getById.bind(RifleProfileController))
+  asyncHandler(RifleProfileController.getById.bind(RifleProfileController)),
 );
 
 /**
  * @route   GET /api/v1/rifles/:id/stats
- * @desc    Get rifle statistics
+ * @description    Get rifle statistics
  * @access  Private
  */
 router.get(
   '/:id/stats',
   validateId('id'),
-  asyncHandler(RifleProfileController.getStats.bind(RifleProfileController))
+  asyncHandler(RifleProfileController.getStats.bind(RifleProfileController)),
 );
 
 /**
  * @route   POST /api/v1/rifles
- * @desc    Create new rifle profile
+ * @description    Create new rifle profile
  * @access  Private
  */
 router.post(
@@ -113,12 +114,12 @@ router.post(
       .isLength({ max: 5000 })
       .withMessage('Notes must not exceed 5000 characters'),
   ]),
-  asyncHandler(RifleProfileController.create.bind(RifleProfileController))
+  asyncHandler(RifleProfileController.create.bind(RifleProfileController)),
 );
 
 /**
  * @route   PUT /api/v1/rifles/:id
- * @desc    Update rifle profile
+ * @description    Update rifle profile
  * @access  Private
  */
 router.put(
@@ -131,62 +132,33 @@ router.put(
       .notEmpty()
       .withMessage('Rifle name cannot be empty')
       .isLength({ max: 255 }),
-    body('caliber')
-      .optional()
-      .trim()
-      .notEmpty()
-      .isLength({ max: 100 }),
-    body('barrel_length')
-      .optional()
-      .isFloat({ min: 0.01, max: 50 }),
+    body('caliber').optional().trim().notEmpty().isLength({ max: 100 }),
+    body('barrel_length').optional().isFloat({ min: 0.01, max: 50 }),
     body('twist_rate')
       .optional()
       .trim()
       .matches(/^1:\d+$/),
-    body('zero_distance')
-      .optional()
-      .isFloat({ min: 0.01, max: 1000 }),
-    body('optic_manufacturer')
-      .optional()
-      .trim()
-      .notEmpty()
-      .isLength({ max: 255 }),
-    body('optic_model')
-      .optional()
-      .trim()
-      .notEmpty()
-      .isLength({ max: 255 }),
-    body('reticle_type')
-      .optional()
-      .trim()
-      .notEmpty()
-      .isLength({ max: 100 }),
-    body('click_value_type')
-      .optional()
-      .isIn(['MIL', 'MOA']),
-    body('click_value')
-      .optional()
-      .isFloat({ min: 0.0001, max: 1 }),
-    body('scope_height')
-      .optional()
-      .isFloat({ min: 0.01, max: 10 }),
-    body('notes')
-      .optional()
-      .trim()
-      .isLength({ max: 5000 }),
+    body('zero_distance').optional().isFloat({ min: 0.01, max: 1000 }),
+    body('optic_manufacturer').optional().trim().notEmpty().isLength({ max: 255 }),
+    body('optic_model').optional().trim().notEmpty().isLength({ max: 255 }),
+    body('reticle_type').optional().trim().notEmpty().isLength({ max: 100 }),
+    body('click_value_type').optional().isIn(['MIL', 'MOA']),
+    body('click_value').optional().isFloat({ min: 0.0001, max: 1 }),
+    body('scope_height').optional().isFloat({ min: 0.01, max: 10 }),
+    body('notes').optional().trim().isLength({ max: 5000 }),
   ]),
-  asyncHandler(RifleProfileController.update.bind(RifleProfileController))
+  asyncHandler(RifleProfileController.update.bind(RifleProfileController)),
 );
 
 /**
  * @route   DELETE /api/v1/rifles/:id
- * @desc    Delete rifle profile
+ * @description    Delete rifle profile
  * @access  Private
  */
 router.delete(
   '/:id',
   validateId('id'),
-  asyncHandler(RifleProfileController.delete.bind(RifleProfileController))
+  asyncHandler(RifleProfileController.delete.bind(RifleProfileController)),
 );
 
 export default router;

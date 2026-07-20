@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { body, query } from 'express-validator';
+
 import EnvironmentSnapshotController from '../controllers/EnvironmentSnapshotController';
-import { validate, validatePagination, validateId } from '../middlewares/validation';
 import { authenticate } from '../middlewares/auth';
 import { asyncHandler } from '../middlewares/errorHandler';
+import { validate, validatePagination, validateId } from '../middlewares/validation';
 
 /**
  * Environment Snapshot Routes
@@ -14,41 +15,35 @@ import { asyncHandler } from '../middlewares/errorHandler';
 const router = Router();
 
 // All environment routes require authentication
-router.use(authenticate);
+router.use(asyncHandler(authenticate));
 
 /**
  * @route   GET /api/v1/environment/current
- * @desc    Get most recent environment snapshot
+ * @description    Get most recent environment snapshot
  * @access  Private
  */
 router.get(
   '/current',
-  asyncHandler(EnvironmentSnapshotController.getCurrent.bind(EnvironmentSnapshotController))
+  asyncHandler(EnvironmentSnapshotController.getCurrent.bind(EnvironmentSnapshotController)),
 );
 
 /**
  * @route   GET /api/v1/environment/averages
- * @desc    Get average conditions for date range
+ * @description    Get average conditions for date range
  * @access  Private
  */
 router.get(
   '/averages',
   validate([
-    query('date_from')
-      .notEmpty()
-      .isISO8601()
-      .withMessage('Valid date_from is required (ISO 8601)'),
-    query('date_to')
-      .notEmpty()
-      .isISO8601()
-      .withMessage('Valid date_to is required (ISO 8601)'),
+    query('date_from').notEmpty().isISO8601().withMessage('Valid date_from is required (ISO 8601)'),
+    query('date_to').notEmpty().isISO8601().withMessage('Valid date_to is required (ISO 8601)'),
   ]),
-  asyncHandler(EnvironmentSnapshotController.getAverages.bind(EnvironmentSnapshotController))
+  asyncHandler(EnvironmentSnapshotController.getAverages.bind(EnvironmentSnapshotController)),
 );
 
 /**
  * @route   GET /api/v1/environment
- * @desc    Get all environment snapshots for authenticated user
+ * @description    Get all environment snapshots for authenticated user
  * @access  Private
  */
 router.get(
@@ -60,23 +55,23 @@ router.get(
     query('date_from').optional().isISO8601(),
     query('date_to').optional().isISO8601(),
   ]),
-  asyncHandler(EnvironmentSnapshotController.getAll.bind(EnvironmentSnapshotController))
+  asyncHandler(EnvironmentSnapshotController.getAll.bind(EnvironmentSnapshotController)),
 );
 
 /**
  * @route   GET /api/v1/environment/:id
- * @desc    Get single environment snapshot
+ * @description    Get single environment snapshot
  * @access  Private
  */
 router.get(
   '/:id',
   validateId('id'),
-  asyncHandler(EnvironmentSnapshotController.getById.bind(EnvironmentSnapshotController))
+  asyncHandler(EnvironmentSnapshotController.getById.bind(EnvironmentSnapshotController)),
 );
 
 /**
  * @route   POST /api/v1/environment
- * @desc    Create new environment snapshot
+ * @description    Create new environment snapshot
  * @access  Private
  */
 router.post(
@@ -108,63 +103,42 @@ router.post(
       .optional()
       .isFloat({ min: -180, max: 180 })
       .withMessage('Longitude must be between -180 and 180'),
-    body('density_altitude')
-      .optional()
-      .isFloat()
-      .withMessage('Density altitude must be a number'),
+    body('density_altitude').optional().isFloat().withMessage('Density altitude must be a number'),
   ]),
-  asyncHandler(EnvironmentSnapshotController.create.bind(EnvironmentSnapshotController))
+  asyncHandler(EnvironmentSnapshotController.create.bind(EnvironmentSnapshotController)),
 );
 
 /**
  * @route   PUT /api/v1/environment/:id
- * @desc    Update environment snapshot
+ * @description    Update environment snapshot
  * @access  Private
  */
 router.put(
   '/:id',
   validateId('id'),
   validate([
-    body('temperature')
-      .optional()
-      .isFloat({ min: -50, max: 150 }),
-    body('humidity')
-      .optional()
-      .isFloat({ min: 0, max: 100 }),
-    body('pressure')
-      .optional()
-      .isFloat({ min: 20, max: 35 }),
-    body('altitude')
-      .optional()
-      .isFloat({ min: -1000, max: 30000 }),
-    body('wind_speed')
-      .optional()
-      .isFloat({ min: 0, max: 100 }),
-    body('wind_direction')
-      .optional()
-      .isFloat({ min: 0, max: 359.99 }),
-    body('latitude')
-      .optional()
-      .isFloat({ min: -90, max: 90 }),
-    body('longitude')
-      .optional()
-      .isFloat({ min: -180, max: 180 }),
-    body('density_altitude')
-      .optional()
-      .isFloat(),
+    body('temperature').optional().isFloat({ min: -50, max: 150 }),
+    body('humidity').optional().isFloat({ min: 0, max: 100 }),
+    body('pressure').optional().isFloat({ min: 20, max: 35 }),
+    body('altitude').optional().isFloat({ min: -1000, max: 30000 }),
+    body('wind_speed').optional().isFloat({ min: 0, max: 100 }),
+    body('wind_direction').optional().isFloat({ min: 0, max: 359.99 }),
+    body('latitude').optional().isFloat({ min: -90, max: 90 }),
+    body('longitude').optional().isFloat({ min: -180, max: 180 }),
+    body('density_altitude').optional().isFloat(),
   ]),
-  asyncHandler(EnvironmentSnapshotController.update.bind(EnvironmentSnapshotController))
+  asyncHandler(EnvironmentSnapshotController.update.bind(EnvironmentSnapshotController)),
 );
 
 /**
  * @route   DELETE /api/v1/environment/:id
- * @desc    Delete environment snapshot
+ * @description    Delete environment snapshot
  * @access  Private
  */
 router.delete(
   '/:id',
   validateId('id'),
-  asyncHandler(EnvironmentSnapshotController.delete.bind(EnvironmentSnapshotController))
+  asyncHandler(EnvironmentSnapshotController.delete.bind(EnvironmentSnapshotController)),
 );
 
 export default router;

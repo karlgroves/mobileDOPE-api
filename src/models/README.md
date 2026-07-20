@@ -14,6 +14,7 @@ Based on the mobile app's data structures:
 - `CommunityAmmo.ts` - Crowdsourced ammunition data
 
 All models should:
+
 - Use UUIDs for primary keys
 - Include timestamps (createdAt, updatedAt)
 - Define proper associations

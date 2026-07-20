@@ -9,7 +9,7 @@ export class AppError extends Error {
   public statusCode: number;
   public isOperational: boolean;
 
-  constructor(message: string, statusCode: number = 500, isOperational: boolean = true) {
+  constructor(message: string, statusCode = 500, isOperational = true) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = isOperational;
@@ -18,46 +18,46 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  public errors: any[];
+  public errors: unknown[];
 
-  constructor(message: string = 'Validation failed', errors: any[] = []) {
+  constructor(message = 'Validation failed', errors: unknown[] = []) {
     super(message, 400);
     this.errors = errors;
   }
 }
 
 export class AuthenticationError extends AppError {
-  constructor(message: string = 'Authentication failed') {
+  constructor(message = 'Authentication failed') {
     super(message, 401);
   }
 }
 
 export class AuthorizationError extends AppError {
-  constructor(message: string = 'Insufficient permissions') {
+  constructor(message = 'Insufficient permissions') {
     super(message, 403);
   }
 }
 
 export class NotFoundError extends AppError {
-  constructor(resource: string = 'Resource') {
+  constructor(resource = 'Resource') {
     super(`${resource} not found`, 404);
   }
 }
 
 export class ConflictError extends AppError {
-  constructor(message: string = 'Resource conflict') {
+  constructor(message = 'Resource conflict') {
     super(message, 409);
   }
 }
 
 export class RateLimitError extends AppError {
-  constructor(message: string = 'Too many requests') {
+  constructor(message = 'Too many requests') {
     super(message, 429);
   }
 }
 
 export class DatabaseError extends AppError {
-  constructor(message: string = 'Database operation failed') {
+  constructor(message = 'Database operation failed') {
     super(message, 500, false);
   }
 }
@@ -75,8 +75,16 @@ export function isOperationalError(error: Error): boolean {
 /**
  * Format error for API response
  */
-export function formatErrorResponse(error: Error | AppError) {
-  const response: any = {
+interface FormattedError {
+  error: string;
+  message: string;
+  errors?: unknown[];
+  statusCode?: number;
+  stack?: string;
+}
+
+export function formatErrorResponse(error: Error | AppError): FormattedError {
+  const response: FormattedError = {
     error: error.name,
     message: error.message,
   };

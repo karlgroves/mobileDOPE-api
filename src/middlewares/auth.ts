@@ -1,24 +1,15 @@
-import { Request, Response, NextFunction } from 'express';
-import { verifyAccessToken, extractBearerToken } from '../utils/jwt';
-import { AuthenticationError, AuthorizationError } from '../utils/errors';
-import { sendUnauthorized, sendForbidden } from '../utils/response';
+import { type Request, type Response, type NextFunction } from 'express';
+
 import User from '../models/User';
+import { AuthenticationError } from '../utils/errors';
+import { verifyAccessToken, extractBearerToken } from '../utils/jwt';
+import { sendUnauthorized, sendForbidden } from '../utils/response';
 
 /**
  * Authentication Middleware
  *
  * JWT-based authentication and authorization middleware.
  */
-
-// Extend Express Request to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: User;
-      userId?: number;
-    }
-  }
-}
 
 /**
  * Authenticate user with JWT
@@ -48,11 +39,17 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
       return sendForbidden(res, 'Account is inactive');
     }
 
+    // Check token version for revocation
+    if (payload.tokenVersion !== undefined && payload.tokenVersion < user.token_version) {
+      return sendUnauthorized(res, 'Token has been revoked');
+    }
+
     // Attach user to request
     req.user = user;
     req.userId = user.id;
 
     next();
+    return;
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return sendUnauthorized(res, error.message);
@@ -65,7 +62,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
  * Optional authentication
  * Authenticates user if token is present, but doesn't fail if missing
  */
-export async function optionalAuth(req: Request, res: Response, next: NextFunction) {
+export async function optionalAuth(req: Request, _res: Response, next: NextFunction) {
   try {
     const token = extractBearerToken(req.headers.authorization);
 
@@ -92,11 +89,13 @@ export async function optionalAuth(req: Request, res: Response, next: NextFuncti
  */
 export function requireVerified(req: Request, res: Response, next: NextFunction) {
   if (!req.user) {
-    return sendUnauthorized(res, 'Authentication required');
+    sendUnauthorized(res, 'Authentication required');
+    return;
   }
 
   if (!req.user.is_verified) {
-    return sendForbidden(res, 'Email verification required');
+    sendForbidden(res, 'Email verification required');
+    return;
   }
 
   next();
@@ -106,25 +105,29 @@ export function requireVerified(req: Request, res: Response, next: NextFunction)
  * Check resource ownership
  * Ensures user owns the requested resource
  */
-export function requireOwnership(resourceUserIdField: string = 'user_id') {
+export function requireOwnership(resourceUserIdField = 'user_id') {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return sendUnauthorized(res, 'Authentication required');
+      sendUnauthorized(res, 'Authentication required');
+      return;
     }
 
     // Get resource user ID from request params, body, or query
-    const resourceUserId =
+    const body = req.body as Record<string, string | number | undefined>;
+    const resourceUserId: string | number | undefined =
       req.params[resourceUserIdField] ||
-      req.body[resourceUserIdField] ||
-      req.query[resourceUserIdField];
+      body[resourceUserIdField] ||
+      (req.query[resourceUserIdField] as string | undefined);
 
     if (!resourceUserId) {
-      return next(); // Let the controller handle the missing ID
+      next();
+      return; // Let the controller handle the missing ID
     }
 
     // Check ownership
-    if (parseInt(resourceUserId, 10) !== req.user.id) {
-      return sendForbidden(res, 'You do not have permission to access this resource');
+    if (parseInt(String(resourceUserId), 10) !== req.user.id) {
+      sendForbidden(res, 'You do not have permission to access this resource');
+      return;
     }
 
     next();
@@ -140,7 +143,8 @@ export function rateLimit(maxRequests: number, windowMs: number) {
 
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.userId) {
-      return next(); // Skip rate limiting for unauthenticated requests
+      next();
+      return; // Skip rate limiting for unauthenticated requests
     }
 
     const now = Date.now();
@@ -152,15 +156,17 @@ export function rateLimit(maxRequests: number, windowMs: number) {
         count: 1,
         resetTime: now + windowMs,
       });
-      return next();
+      next();
+      return;
     }
 
     if (userLimit.count >= maxRequests) {
-      return res.status(429).json({
+      res.status(429).json({
         success: false,
         message: 'Too many requests. Please try again later.',
         retryAfter: Math.ceil((userLimit.resetTime - now) / 1000),
       });
+      return;
     }
 
     // Increment counter
@@ -173,7 +179,9 @@ export function rateLimit(maxRequests: number, windowMs: number) {
  * Middleware to ensure user owns the resource being accessed
  * Checks user_id in the resource fetched from database
  */
-export function checkResourceOwnership(getResource: (req: Request) => Promise<any>) {
+export function checkResourceOwnership(
+  getResource: (req: Request) => Promise<{ user_id: number } | null>,
+) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user) {
@@ -194,11 +202,13 @@ export function checkResourceOwnership(getResource: (req: Request) => Promise<an
       }
 
       // Attach resource to request for use in controller
-      (req as any).resource = resource;
+      req.resource = resource;
 
       next();
+      return;
     } catch (error) {
       next(error);
+      return;
     }
   };
 }

@@ -1,4 +1,5 @@
 import bunyan from 'bunyan';
+import { type Request, type Response } from 'express';
 
 /**
  * Logger Utility
@@ -10,6 +11,10 @@ import bunyan from 'bunyan';
 const LOG_LEVEL = (process.env.LOG_LEVEL || 'info') as bunyan.LogLevel;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// Error logs to a separate stream in production
+const productionStreams: bunyan.Stream[] =
+  NODE_ENV === 'production' ? [{ stream: process.stderr, level: 'error' }] : [];
+
 // Create base logger
 const logger = bunyan.createLogger({
   name: 'mobile-dope-api',
@@ -20,15 +25,7 @@ const logger = bunyan.createLogger({
       stream: process.stdout,
       level: NODE_ENV === 'development' ? 'debug' : 'info',
     },
-    ...(NODE_ENV === 'production'
-      ? [
-          {
-            // Error logs to separate stream in production
-            stream: process.stderr,
-            level: 'error' as bunyan.LogLevel,
-          },
-        ]
-      : []),
+    ...productionStreams,
   ],
   serializers: bunyan.stdSerializers,
 });
@@ -36,14 +33,14 @@ const logger = bunyan.createLogger({
 /**
  * Create child logger with additional context
  */
-export function createLogger(context: Record<string, any>) {
+export function createLogger(context: Record<string, unknown>) {
   return logger.child(context);
 }
 
 /**
  * Log HTTP request
  */
-export function logRequest(req: any) {
+export function logRequest(req: Request) {
   logger.info(
     {
       method: req.method,
@@ -51,14 +48,14 @@ export function logRequest(req: any) {
       ip: req.ip,
       userAgent: req.get('user-agent'),
     },
-    'HTTP Request'
+    'HTTP Request',
   );
 }
 
 /**
  * Log HTTP response
  */
-export function logResponse(req: any, res: any, duration: number) {
+export function logResponse(req: Request, res: Response, duration: number) {
   logger.info(
     {
       method: req.method,
@@ -66,34 +63,34 @@ export function logResponse(req: any, res: any, duration: number) {
       status: res.statusCode,
       duration: `${duration}ms`,
     },
-    'HTTP Response'
+    'HTTP Response',
   );
 }
 
 /**
  * Log error with context
  */
-export function logError(error: Error, context?: Record<string, any>) {
+export function logError(error: Error, context?: Record<string, unknown>) {
   logger.error(
     {
       err: error,
       ...context,
     },
-    error.message
+    error.message,
   );
 }
 
 /**
  * Log authentication event
  */
-export function logAuth(event: string, userId?: number, details?: Record<string, any>) {
+export function logAuth(event: string, userId?: number, details?: Record<string, unknown>) {
   logger.info(
     {
       event,
       userId,
       ...details,
     },
-    `Auth: ${event}`
+    `Auth: ${event}`,
   );
 }
 
@@ -107,7 +104,7 @@ export function logDatabase(operation: string, table: string, duration?: number)
       table,
       duration: duration ? `${duration}ms` : undefined,
     },
-    `Database: ${operation} on ${table}`
+    `Database: ${operation} on ${table}`,
   );
 }
 

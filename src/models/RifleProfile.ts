@@ -1,5 +1,7 @@
-import { DataTypes, Model, Optional, Association } from 'sequelize';
+import { DataTypes, Model, type Optional, type Association } from 'sequelize';
+
 import sequelize from '../config/database';
+
 import User from './User';
 
 /**
@@ -28,8 +30,12 @@ interface RifleProfileAttributes {
   updated_at?: Date;
 }
 
-interface RifleProfileCreationAttributes extends Optional<RifleProfileAttributes, 'id' | 'created_at' | 'updated_at'> {}
+type RifleProfileCreationAttributes = Optional<
+  RifleProfileAttributes,
+  'id' | 'created_at' | 'updated_at'
+>;
 
+// prettier-ignore
 class RifleProfile extends Model<RifleProfileAttributes, RifleProfileCreationAttributes> implements RifleProfileAttributes {
   public id!: number;
   public user_id!: number;
@@ -51,7 +57,7 @@ class RifleProfile extends Model<RifleProfileAttributes, RifleProfileCreationAtt
   // Associations
   public readonly user?: User;
 
-  public static associations: {
+  public static override associations: {
     user: Association<RifleProfile, User>;
   };
 
@@ -189,11 +195,8 @@ RifleProfile.init(
     tableName: 'rifle_profiles',
     timestamps: true,
     underscored: true,
-    indexes: [
-      { fields: ['user_id'] },
-      { fields: ['caliber'] },
-    ],
-  }
+    indexes: [{ fields: ['user_id'] }, { fields: ['caliber'] }],
+  },
 );
 
 // Define associations

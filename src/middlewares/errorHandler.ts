@@ -1,6 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
+import { type Request, type Response, type NextFunction, type RequestHandler } from 'express';
+
 import { AppError, formatErrorResponse, isOperationalError } from '../utils/errors';
 import logger, { logError } from '../utils/logger';
+
+interface SequelizeLikeError {
+  errors?: { path?: string; message?: string }[];
+}
 
 /**
  * Error Handler Middleware
@@ -13,13 +18,18 @@ import logger, { logError } from '../utils/logger';
  * Global error handler
  * Should be registered last in middleware chain
  */
-export function errorHandler(err: Error | AppError, req: Request, res: Response, next: NextFunction) {
+export function errorHandler(
+  err: Error | AppError,
+  req: Request,
+  res: Response,
+  _next: NextFunction,
+) {
   // Log error
   logError(err, {
     method: req.method,
     url: req.url,
     ip: req.ip,
-    userId: (req as any).userId,
+    userId: req.userId,
   });
 
   // Handle operational errors
@@ -34,7 +44,7 @@ export function errorHandler(err: Error | AppError, req: Request, res: Response,
       success: false,
       error: 'Validation Error',
       message: 'Invalid data provided',
-      errors: (err as any).errors?.map((e: any) => ({
+      errors: (err as SequelizeLikeError).errors?.map((e) => ({
         field: e.path,
         message: e.message,
       })),
@@ -47,7 +57,7 @@ export function errorHandler(err: Error | AppError, req: Request, res: Response,
       success: false,
       error: 'Conflict',
       message: 'Resource already exists',
-      errors: (err as any).errors?.map((e: any) => ({
+      errors: (err as SequelizeLikeError).errors?.map((e) => ({
         field: e.path,
         message: e.message,
       })),
@@ -88,10 +98,7 @@ export function errorHandler(err: Error | AppError, req: Request, res: Response,
   return res.status(500).json({
     success: false,
     error: 'Internal Server Error',
-    message:
-      process.env.NODE_ENV === 'development'
-        ? err.message
-        : 'An unexpected error occurred',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 }
@@ -100,8 +107,14 @@ export function errorHandler(err: Error | AppError, req: Request, res: Response,
  * Async handler wrapper
  * Wraps async route handlers to catch errors and pass to error handler
  */
-export function asyncHandler(fn: Function) {
-  return (req: Request, res: Response, next: NextFunction) => {
+type AsyncRequestHandler = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<Response | void> | Response | void;
+
+export function asyncHandler(fn: AsyncRequestHandler): RequestHandler {
+  return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 }
@@ -111,10 +124,13 @@ export function asyncHandler(fn: Function) {
  * Should be registered before error handler
  */
 export function notFoundHandler(req: Request, res: Response) {
+  // Log the URL server-side for debugging, but don't reflect it in the response
+  logger.debug({ method: req.method, url: req.url }, 'Route not found');
+
   res.status(404).json({
     success: false,
     error: 'Not Found',
-    message: `Route ${req.method} ${req.url} not found`,
+    message: 'The requested resource was not found',
   });
 }
 
@@ -132,7 +148,7 @@ export function handleUncaughtErrors() {
   });
 
   // Handle unhandled promise rejections
-  process.on('unhandledRejection', (reason: any) => {
+  process.on('unhandledRejection', (reason: unknown) => {
     logger.fatal({ reason }, 'Unhandled Promise Rejection');
 
     if (reason instanceof Error && !isOperationalError(reason)) {

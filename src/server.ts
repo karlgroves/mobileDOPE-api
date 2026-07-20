@@ -5,15 +5,19 @@
  * @author Mobile DOPE Development Team
  */
 
-import express, { Application, Request, Response } from 'express';
+import { type Server } from 'http';
+
 import cors from 'cors';
+import dotenv from 'dotenv';
+import express, { type Application, type Request, type Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
+
 import { testConnection, closeConnection } from './config/database';
-import routes from './routes';
 import { errorHandler, notFoundHandler, handleUncaughtErrors } from './middlewares/errorHandler';
 import { sanitizeInput } from './middlewares/validation';
+import routes from './routes';
 import logger from './utils/logger';
 
 // Load environment variables
@@ -24,22 +28,32 @@ handleUncaughtErrors();
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const NODE_ENV = process.env.NODE_ENV || 'production';
 
 // Security middleware
 app.use(helmet());
 
+// Global rate limiting: 100 requests per 15 minutes per IP
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+  }),
+);
+
 // CORS configuration
 const corsOptions = {
   origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3001'],
-  credentials: true,
+  credentials: false, // JWT auth uses Authorization header, not cookies
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body parsing middleware (1MB limit for JSON; file uploads use multer with separate limits)
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Logging middleware
 if (NODE_ENV === 'development') {
@@ -54,7 +68,6 @@ app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    environment: NODE_ENV,
     version: '1.0.0',
   });
 });
@@ -80,9 +93,9 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Initialize server
-let server: any;
+let server: Server | undefined;
 
-async function startServer() {
+async function startServer(): Promise<void> {
   try {
     // Test database connection
     const dbConnected = await testConnection();
@@ -104,23 +117,27 @@ async function startServer() {
   }
 }
 
-// Start the server
-startServer();
+// Start the server only when run directly (e.g. `node dist/server.js`), not when
+// the app is imported — e.g. by integration tests via supertest — so importing
+// `app` does not boot a real server or require a database connection.
+if (require.main === module) {
+  void startServer();
+}
 
 // Graceful shutdown
-async function gracefulShutdown(signal: string) {
+async function gracefulShutdown(signal: string): Promise<void> {
   logger.info(`${signal} signal received: closing server gracefully`);
 
   // Close HTTP server first
   if (server) {
-    server.close(async () => {
+    server.close(() => {
       logger.info('HTTP server closed');
 
       // Close database connection
-      await closeConnection();
-
-      logger.info('Graceful shutdown complete');
-      process.exit(0);
+      void closeConnection().then(() => {
+        logger.info('Graceful shutdown complete');
+        process.exit(0);
+      });
     });
   } else {
     await closeConnection();
@@ -134,7 +151,7 @@ async function gracefulShutdown(signal: string) {
   }, 10000);
 }
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => void gracefulShutdown('SIGINT'));
 
 export default app;
