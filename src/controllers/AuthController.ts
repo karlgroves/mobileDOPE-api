@@ -55,12 +55,12 @@ export class AuthController {
     }
 
     // Hash password
-    const password_hash = await User.hashPassword(password);
+    const passwordHash = await User.hashPassword(password);
 
     // Create user
     const user = await User.create({
       email,
-      password_hash,
+      password_hash: passwordHash,
       name,
       is_active: true,
       is_verified: false,

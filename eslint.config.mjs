@@ -95,10 +95,12 @@ export default tseslint.config(
       '@typescript-eslint/explicit-function-return-type': 'warn',
       '@typescript-eslint/explicit-module-boundary-types': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'warn',
-      // Naming convention (issue #3). `warn` because it is rarely auto-fixable
-      // and the existing Sequelize models use mixed casing.
+      // Naming convention (issue #3). Enforced as `error` so CI/pre-commit fails
+      // on violations. Property-like and destructured identifiers are exempt
+      // below because this API's data contract (DB columns, request/response
+      // bodies, Sequelize fields, query params) is snake_case end to end.
       '@typescript-eslint/naming-convention': [
-        'warn',
+        'error',
         { selector: 'default', format: ['camelCase'] },
         { selector: 'variable', format: ['camelCase', 'UPPER_CASE', 'PascalCase'] },
         // Destructured names mirror request-body / DB-row keys, which this API

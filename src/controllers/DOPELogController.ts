@@ -41,12 +41,14 @@ export class DOPELogController {
   async getAll(req: Request, res: Response) {
     const userId = req.userId;
     const { page, limit, offset } = req.pagination!;
-    const rifle_id = req.query.rifle_id as string | undefined;
-    const ammo_id = req.query.ammo_id as string | undefined;
-    const distance_min = req.query.distance_min as string | undefined;
-    const distance_max = req.query.distance_max as string | undefined;
-    const target_type = req.query.target_type as string | undefined;
-    const sort = req.query.sort as string | undefined;
+    const { rifle_id, ammo_id, distance_min, distance_max, target_type, sort } = req.query as {
+      rifle_id?: string;
+      ammo_id?: string;
+      distance_min?: string;
+      distance_max?: string;
+      target_type?: string;
+      sort?: string;
+    };
 
     // Build query with explicit type casting for all query params
     const where: Record<string | symbol, unknown> = { user_id: userId };

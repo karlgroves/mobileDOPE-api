@@ -26,15 +26,19 @@ Adopt the full backend plugin set, but split rule severity pragmatically:
   `prefer-const`, `no-var`, `eqeqeq`, the deterministic `security/detect-*` rules,
   `promise/*`, `no-secrets/no-secrets`).
 - **`warn`** — noisy, subjective, or behaviour-sensitive rules
-  (`naming-convention`, `prefer-nullish-coalescing`, `restrict-template-expressions`,
+  (`prefer-nullish-coalescing`, `restrict-template-expressions`,
   `no-unnecessary-*`, `explicit-*-types`, `jsdoc/*`, `sonarjs/cognitive-complexity`,
   `max-lines*`, `complexity`). These are surfaced for incremental cleanup and can be
   promoted to `error` in follow-up PRs.
 
-`@typescript-eslint/naming-convention` (issue #3) is configured but tuned to this
-project's conventions: property-like identifiers and destructured names are exempt
-from camelCase, because the API's data contract (DB columns, request/response
-bodies, Sequelize model fields) is snake_case end to end.
+`@typescript-eslint/naming-convention` (issue #3) is enforced as **`error`** and
+tuned to this project's conventions: property-like identifiers and destructured
+names are exempt from camelCase, because the API's data contract (DB columns,
+request/response bodies, Sequelize model fields, query params) uses snake-case
+naming end to end. The handful of query-param locals that were plain
+`const x = req.query.x` casts were converted to the (exempt) destructuring form
+already used elsewhere in the controllers, and one private static method was given
+a leading-underscore prefix per the rule.
 
 `exactOptionalPropertyTypes` from #2's foundations is **deferred** (not enabled) to
 avoid widespread type churn; `noImplicitOverride` was added and its findings fixed.
