@@ -11,7 +11,7 @@ The Mobile DOPE API provides:
 
 ## Technology Stack
 
-- **Runtime**: Node.js 22 (LTS)
+- **Runtime**: Node.js 24.15+ (see `.nvmrc`)
 - **Framework**: Express.js
 - **Language**: TypeScript (strict mode)
 - **Database**: MySQL 8.4
@@ -25,7 +25,7 @@ The Mobile DOPE API provides:
 ### Prerequisites
 
 - Docker Desktop installed
-- Node.js 22+ (optional, for local development without Docker)
+- Node.js 24.15+ (optional, for local development without Docker) — `nvm use` reads `.nvmrc`
 - Git
 
 > **Note:** `.npmrc` sets `engine-strict=true`, so `npm install` will **fail** on
