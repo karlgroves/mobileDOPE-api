@@ -15,6 +15,24 @@ import path from 'path';
 
 import semver from 'semver';
 
+/**
+ * Versions the admitted-range check samples.
+ *
+ * Every major from the declared floor upward, at its `.0` and at a late minor,
+ * because the gaps that matter sit between majors: a `^24.15.0` disjunct ends at
+ * 25.0.0 and the next disjunct may not start until 26. Extend when Node ships a
+ * new major.
+ */
+const CANDIDATE_VERSIONS = [
+  '24.15.0',
+  '24.99.0',
+  '25.0.0',
+  '25.99.0',
+  '26.0.0',
+  '26.99.0',
+  '27.0.0',
+];
+
 const repoRoot = path.resolve(__dirname, '../..');
 const read = (relative: string): string =>
   // Every caller passes a hardcoded repo-relative path (see below); there is no
@@ -30,6 +48,30 @@ interface LockfileEntry {
 }
 
 /**
+ * The node range an `engines` field declares, in either shape npm writes.
+ *
+ * @param engines - The raw `engines` value from a lockfile entry.
+ * @returns A valid semver range, or null when the entry declares no node constraint.
+ */
+const nodeRangeOf = (engines: unknown): string | null => {
+  if (!engines) return null;
+
+  // Array form: entries look like 'node >=0.10.0'.
+  if (Array.isArray(engines)) {
+    for (const entry of engines) {
+      if (typeof entry !== 'string') continue;
+      const match = /^\s*node\s+(.+)$/.exec(entry);
+      const range = match?.[1]?.trim();
+      if (range && semver.validRange(range)) return range;
+    }
+    return null;
+  }
+
+  const range = (engines as { node?: unknown }).node;
+  return typeof range === 'string' && semver.validRange(range) ? range : null;
+};
+
+/**
  * Every `engines.node` range recorded in the committed lockfile.
  *
  * Lockfile v3 records `engines` per package, so the true floor is derivable
@@ -42,12 +84,12 @@ const lockfileNodeRanges = (): LockfileEntry[] => {
 
   const entries: LockfileEntry[] = [];
   for (const [name, meta] of Object.entries(lock.packages ?? {})) {
-    // Some entries record `engines` as an array (legacy shape); only the object
-    // form carries a node range.
-    const engines = meta.engines;
-    if (!engines || Array.isArray(engines)) continue;
-    const range = engines.node;
-    if (typeof range !== 'string' || !semver.validRange(range)) continue;
+    // Two shapes occur. Modern npm writes `engines: { node: '>=24' }`; a handful of
+    // older packages (bunyan, concat-stream, inflection, jsonparse) write
+    // `engines: ['node >=0.10.0']`. The array form DOES carry a node constraint, so
+    // skipping it would leave a blind spot in exactly the check this file exists for.
+    const range = nodeRangeOf(meta.engines);
+    if (range === null) continue;
     entries.push({ name: name || '(root)', range });
   }
   return entries;
@@ -99,6 +141,25 @@ describe('declared Node floor', () => {
     // Reported with the offending package names so a failure says which
     // dependency raised the floor, not just that it moved.
     expect(unsatisfied.map(({ name, range }) => `${name} requires ${range}`)).toEqual([]);
+  });
+
+  it('admits no version that would fail to install', () => {
+    // Checking only `minVersion(declared)` tests a single point and says nothing
+    // about the rest of the range. `>=24.15.0` passed that check while admitting
+    // the whole Node 25 line, every version of which fails `npm ci` here:
+    // read-package-json-fast and friends declare
+    // `^22.22.2 || ^24.15.0 || >=26.0.0`, which 25.x satisfies through no
+    // disjunct. Under `engine-strict=true` that is a hard EBADENGINE refusal --
+    // the exact defect class this file exists to prevent.
+    const ranges = lockfileNodeRanges();
+
+    const broken = CANDIDATE_VERSIONS.filter(
+      (version) =>
+        semver.satisfies(version, declared!) &&
+        ranges.some(({ range }) => !semver.satisfies(version, range)),
+    );
+
+    expect(broken).toEqual([]);
   });
 
   it('is exactly the floor the lockfile requires, not higher', () => {
