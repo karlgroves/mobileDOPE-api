@@ -1,6 +1,6 @@
 # Multi-stage build for Mobile DOPE API
 # Stage 1: Build
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ COPY src/ ./src/
 RUN npm run build
 
 # Stage 2: Production
-FROM node:22-alpine AS production
+FROM node:24-alpine AS production
 
 # Install curl for healthcheck
 RUN apk add --no-cache curl
