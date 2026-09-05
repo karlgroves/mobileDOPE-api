@@ -72,17 +72,38 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
+      # Every step below is deliberately WITHOUT `continue-on-error`. This job
+      # previously carried it on the install, lint and test steps, which meant it
+      # reported success no matter what happened -- a failing install, a lint
+      # error or a red test suite all still produced a green check. See #16.
+      #
+      # `--ignore-scripts` is retained: it blocks lifecycle scripts from
+      # untrusted dependency code on CI. Verified safe here -- `src/models/User.ts`
+      # imports `bcrypt`, and the module loads with its install script skipped.
       - name: Install dependencies
         if: steps.detect.outputs.type == 'node'
         run: npm ci --ignore-scripts
-        continue-on-error: true
 
+      # `lint:ci` holds the warning count at a ceiling rather than letting it
+      # drift. `npm run lint` alone exits 0 with warnings, so without a ceiling a
+      # blocking lint step would still gate on nothing but errors.
+      #
+      # The ceiling only ratchets DOWNWARD by hand: fixing warnings does not
+      # tighten it automatically, so the count can drift back up to the ceiling
+      # unnoticed. Lower the number in the `lint:ci` script whenever warnings are
+      # fixed, or it stops being a ratchet and becomes just a cap.
       - name: Run lint check
         if: steps.detect.outputs.type == 'node'
-        run: npm run lint --if-present
-        continue-on-error: true
+        run: npm run lint:ci --if-present
+
+      - name: Run type check
+        if: steps.detect.outputs.type == 'node'
+        run: npm run typecheck --if-present
 
       - name: Run tests
         if: steps.detect.outputs.type == 'node'
         run: npm test --if-present
-        continue-on-error: true
+
+      - name: Build
+        if: steps.detect.outputs.type == 'node'
+        run: npm run build --if-present

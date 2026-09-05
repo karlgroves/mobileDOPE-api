@@ -117,6 +117,7 @@ api/
 
 - `npm run lint` - Run ESLint (flat config, `eslint.config.mjs`)
 - `npm run lint:fix` - Fix ESLint issues
+- `npm run lint:ci` - Run ESLint with the warning count held at its current ceiling (used by CI)
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check code formatting
 - `npm run markdownlint` - Lint Markdown (`markdownlint-cli2`)
