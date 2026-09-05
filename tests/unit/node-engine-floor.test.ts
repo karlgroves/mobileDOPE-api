@@ -40,7 +40,7 @@ const read = (relative: string): string =>
   // eslint-disable-next-line security/detect-non-literal-fs-filename
   fs.readFileSync(path.join(repoRoot, relative), 'utf8');
 
-const pkg = JSON.parse(read('package.json')) as { engines?: { node?: string } };
+const pkg = JSON.parse(read('package.json')) as { engines?: Record<string, string> };
 
 interface LockfileEntry {
   name: string;
@@ -79,17 +79,21 @@ const nodeRangeOf = (engines: unknown): string | null => {
  * changed `engines.node` but the mirrored copy stayed at `>=20.0.0` until the
  * next install rewrote it.
  *
- * @returns The root entry's node range, or null when the lockfile records none.
+ * Returned whole rather than as a single range: `engines.npm` is mirrored by the
+ * same mechanism and goes stale by the same route, so checking only `node` would
+ * leave half of the drift unguarded.
+ *
+ * @returns The root entry's `engines` object, or undefined when the lockfile records none.
  */
-const lockfileRootNodeRange = (): string | null => {
+const lockfileRootEngines = (): Record<string, string> | undefined => {
   const lock = JSON.parse(read('package-lock.json')) as {
-    packages?: Record<string, { engines?: { node?: string } | string[] }>;
+    packages?: Record<string, { engines?: Record<string, string> }>;
   };
-  return nodeRangeOf(lock.packages?.['']?.engines);
+  return lock.packages?.['']?.engines;
 };
 
 /**
- * Every `engines.node` range the DEPENDENCIES record in the committed lockfile.
+ * Every `engines.node` range recorded by a dependency in the committed lockfile.
  *
  * Lockfile v3 records `engines` per package, so the true floor is derivable
  * without bisecting Node versions.
@@ -203,13 +207,14 @@ describe('version pins agree with the declared floor', () => {
   const declared = pkg.engines?.node;
   if (declared === undefined) throw new Error('package.json declares no engines.node');
 
-  it('the lockfile mirrors the declared engines.node', () => {
+  it('the lockfile mirrors the declared engines', () => {
     // `npm install` copies the root `engines` into `packages[""]`, so the two drift
-    // apart whenever `engines.node` is edited without a reinstall -- which is what
+    // apart whenever `engines` is edited without a reinstall -- which is what
     // happened to #8's own fix. `npm ci` tolerates it (it reads the real
     // `package.json`), so nothing else in the toolchain reports the drift, and a
     // stale mirror is what let the floor derivation above go circular unnoticed.
-    expect(lockfileRootNodeRange()).toBe(declared);
+    // Compared whole, because `engines.npm` is mirrored and drifts the same way.
+    expect(lockfileRootEngines()).toEqual(pkg.engines);
   });
 
   it('.nvmrc satisfies engines.node', () => {
