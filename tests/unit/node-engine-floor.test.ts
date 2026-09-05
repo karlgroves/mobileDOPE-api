@@ -40,7 +40,7 @@ const read = (relative: string): string =>
   // eslint-disable-next-line security/detect-non-literal-fs-filename
   fs.readFileSync(path.join(repoRoot, relative), 'utf8');
 
-const pkg = JSON.parse(read('package.json')) as { engines?: { node?: string } };
+const pkg = JSON.parse(read('package.json')) as { engines?: Record<string, string> };
 
 interface LockfileEntry {
   name: string;
@@ -72,10 +72,39 @@ const nodeRangeOf = (engines: unknown): string | null => {
 };
 
 /**
- * Every `engines.node` range recorded in the committed lockfile.
+ * The lockfile's own record of this package's `engines`.
+ *
+ * npm mirrors the root `package.json` into `packages[""]` on every install, so
+ * this is a copy that can fall out of step with the original — and did: #8's fix
+ * changed `engines.node` but the mirrored copy stayed at `>=20.0.0` until the
+ * next install rewrote it.
+ *
+ * Returned whole rather than as a single range: `engines.npm` is mirrored by the
+ * same mechanism and goes stale by the same route, so checking only `node` would
+ * leave half of the drift unguarded.
+ *
+ * @returns The root entry's `engines` object, or undefined when the lockfile records none.
+ */
+const lockfileRootEngines = (): Record<string, string> | undefined => {
+  const lock = JSON.parse(read('package-lock.json')) as {
+    packages?: Record<string, { engines?: Record<string, string> }>;
+  };
+  return lock.packages?.['']?.engines;
+};
+
+/**
+ * Every `engines.node` range recorded by a dependency in the committed lockfile.
  *
  * Lockfile v3 records `engines` per package, so the true floor is derivable
  * without bisecting Node versions.
+ *
+ * The root entry (`packages[""]`) is deliberately excluded. It is not a
+ * constraint the tree imposes — it is npm's mirror of the very `engines.node`
+ * these tests are checking, so including it makes the derivation circular: an
+ * inflated floor propagates into the lockfile on the next `npm install` and then
+ * validates itself. With the root included, a floor of `>=26.0.0` passed every
+ * assertion here while the tree's real floor was 24.15.0. `lockfileRootNodeRange`
+ * checks that mirror against `package.json` separately, which is the honest test.
  */
 const lockfileNodeRanges = (): LockfileEntry[] => {
   const lock = JSON.parse(read('package-lock.json')) as {
@@ -84,13 +113,15 @@ const lockfileNodeRanges = (): LockfileEntry[] => {
 
   const entries: LockfileEntry[] = [];
   for (const [name, meta] of Object.entries(lock.packages ?? {})) {
+    if (name === '') continue;
+
     // Two shapes occur. Modern npm writes `engines: { node: '>=24' }`; a handful of
     // older packages (bunyan, concat-stream, inflection, jsonparse) write
     // `engines: ['node >=0.10.0']`. The array form DOES carry a node constraint, so
     // skipping it would leave a blind spot in exactly the check this file exists for.
     const range = nodeRangeOf(meta.engines);
     if (range === null) continue;
-    entries.push({ name: name || '(root)', range });
+    entries.push({ name, range });
   }
   return entries;
 };
@@ -175,6 +206,16 @@ describe('declared Node floor', () => {
 describe('version pins agree with the declared floor', () => {
   const declared = pkg.engines?.node;
   if (declared === undefined) throw new Error('package.json declares no engines.node');
+
+  it('the lockfile mirrors the declared engines', () => {
+    // `npm install` copies the root `engines` into `packages[""]`, so the two drift
+    // apart whenever `engines` is edited without a reinstall -- which is what
+    // happened to #8's own fix. `npm ci` tolerates it (it reads the real
+    // `package.json`), so nothing else in the toolchain reports the drift, and a
+    // stale mirror is what let the floor derivation above go circular unnoticed.
+    // Compared whole, because `engines.npm` is mirrored and drifts the same way.
+    expect(lockfileRootEngines()).toEqual(pkg.engines);
+  });
 
   it('.nvmrc satisfies engines.node', () => {
     const nvmrc = read('.nvmrc').trim();
