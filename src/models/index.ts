@@ -5,8 +5,6 @@
  * Ensures proper initialization order and association setup.
  */
 
-import sequelize from '../config/database';
-
 // Import models in dependency order
 import AmmoProfile from './AmmoProfile';
 import DOPELog from './DOPELog';
@@ -58,15 +56,9 @@ EnvironmentSnapshot.hasMany(DOPELog, {
   as: 'dope_logs',
 });
 
-// Export models and sequelize instance
-export { sequelize, User, RifleProfile, AmmoProfile, EnvironmentSnapshot, DOPELog };
+// Export models
+export { User, RifleProfile, AmmoProfile, EnvironmentSnapshot, DOPELog };
 
-// Export default object with all models
-export default {
-  sequelize,
-  User,
-  RifleProfile,
-  AmmoProfile,
-  EnvironmentSnapshot,
-  DOPELog,
-};
+// No default export: this module is imported for its side effects (registering
+// the associations above), and nothing consumed the default aggregate object.
+// The named exports above remain available.

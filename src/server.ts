@@ -15,6 +15,12 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 
 import { testConnection, closeConnection } from './config/database';
+// Imported for its side effects: this module defines every hasMany inverse
+// association between the models. Nothing else imports it, so without this line
+// the associations are never registered and any query using `include` fails.
+// Verified: User.associations is empty before this import and carries
+// rifle_profiles, ammo_profiles, environment_snapshots and dope_logs after it.
+import './models';
 import { errorHandler, notFoundHandler, handleUncaughtErrors } from './middlewares/errorHandler';
 import { sanitizeInput } from './middlewares/validation';
 import routes from './routes';

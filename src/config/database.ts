@@ -138,22 +138,4 @@ export async function closeConnection(): Promise<void> {
   }
 }
 
-/**
- * Sync all models with database (development only)
- * WARNING: This will drop tables if force is true
- */
-export async function syncDatabase(force = false): Promise<void> {
-  if (isProduction && force) {
-    throw new Error('Cannot force sync database in production');
-  }
-
-  try {
-    await sequelize.sync({ force, alter: !force && !isProduction });
-    logger.info(`✓ Database synced ${force ? '(forced)' : '(altered)'}`);
-  } catch (error) {
-    logger.error({ err: error }, '✗ Error syncing database');
-    throw error;
-  }
-}
-
 export default sequelize;
