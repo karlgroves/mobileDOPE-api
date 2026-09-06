@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Validate workflow syntax
         run: |
@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Detect project type
         id: detect
@@ -67,22 +67,52 @@ jobs:
 
       - name: Setup Node.js
         if: steps.detect.outputs.type == 'node'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
+      # Every step below is deliberately WITHOUT `continue-on-error`. This job
+      # previously carried it on the install, lint and test steps, which meant it
+      # reported success no matter what happened -- a failing install, a lint
+      # error or a red test suite all still produced a green check. See #16.
+      #
+      # `--ignore-scripts` is retained: it blocks lifecycle scripts from
+      # untrusted dependency code on CI. Verified safe here -- `src/models/User.ts`
+      # imports `bcrypt`, and the module loads with its install script skipped.
       - name: Install dependencies
         if: steps.detect.outputs.type == 'node'
         run: npm ci --ignore-scripts
-        continue-on-error: true
 
+      # `lint:ci` holds the warning count at a ceiling rather than letting it
+      # drift. `npm run lint` alone exits 0 with warnings, so without a ceiling a
+      # blocking lint step would still gate on nothing but errors.
+      #
+      # The ceiling only ratchets DOWNWARD by hand: fixing warnings does not
+      # tighten it automatically, so the count can drift back up to the ceiling
+      # unnoticed. Lower the number in the `lint:ci` script whenever warnings are
+      # fixed, or it stops being a ratchet and becomes just a cap.
       - name: Run lint check
         if: steps.detect.outputs.type == 'node'
-        run: npm run lint --if-present
-        continue-on-error: true
+        run: npm run lint:ci --if-present
+
+      - name: Run type check
+        if: steps.detect.outputs.type == 'node'
+        run: npm run typecheck --if-present
 
       - name: Run tests
         if: steps.detect.outputs.type == 'node'
         run: npm test --if-present
-        continue-on-error: true
+
+      - name: Build
+        if: steps.detect.outputs.type == 'node'
+        run: npm run build --if-present
+
+      # Blocking, and only safe to make blocking now: this exited 1 on develop
+      # until the production advisories were cleared (mysql2 auth-plugin
+      # downgrade, brace-expansion DoS). Adding it earlier would have made CI red
+      # for everyone. Production dependencies only, high and above -- dev-tree
+      # advisories are covered separately by `npm run security:osv`.
+      - name: Security audit (production dependencies)
+        if: steps.detect.outputs.type == 'node'
+        run: npm run security:audit --if-present

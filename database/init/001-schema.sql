@@ -31,13 +31,29 @@ SET CHARACTER SET utf8mb4;
 
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  uuid CHAR(36) AS (CONCAT(
-    SUBSTR(HEX(id), 1, 8), '-',
-    SUBSTR(HEX(id), 9, 4), '-',
-    '4', SUBSTR(HEX(id), 14, 3), '-',
-    'a', SUBSTR(HEX(id), 18, 3), '-',
-    SUBSTR(HEX(id), 21, 12)
-  )) STORED COMMENT 'UUID v4 generated from ID for external API use',
+  -- Random UUID v4 for external API use, so the public identifier does not leak
+  -- the sequential primary key.
+  --
+  -- This was previously a STORED generated column derived from HEX(id). That is
+  -- illegal (MySQL forbids a generated column referring to an AUTO_INCREMENT
+  -- column -- ERROR 3109), so this whole file failed to load on any MySQL. It
+  -- also could not have worked: HEX() of a 64-bit integer is at most 16 hex
+  -- digits and a UUID needs 32, so SUBSTR(HEX(id), 21, 12) never returned
+  -- anything -- even for the maximum BIGINT UNSIGNED the result was 21 chars.
+  -- And deriving it from `id` made it trivially reversible, defeating the point.
+  --
+  -- MySQL's own UUID() is v1: consecutive calls share the node ID and clock
+  -- sequence and differ only in the timestamp, so it is close to enumerable.
+  -- This builds a real v4 from RANDOM_BYTES instead: version nibble 4, variant
+  -- nibble in [89ab]. Sequelize supplies a v4 of its own on creates; this
+  -- default is the backstop for any insert that does not go through the model.
+  uuid CHAR(36) NOT NULL DEFAULT (LOWER(CONCAT(
+    HEX(RANDOM_BYTES(4)), '-',
+    HEX(RANDOM_BYTES(2)), '-4',
+    SUBSTR(HEX(RANDOM_BYTES(2)), 2, 3), '-',
+    CONCAT(SUBSTR('89ab', FLOOR(1 + RAND() * 4), 1), SUBSTR(HEX(RANDOM_BYTES(2)), 2, 3)), '-',
+    HEX(RANDOM_BYTES(6))
+  ))) COMMENT 'Random UUID v4 for external API use',
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   name VARCHAR(255),
@@ -48,12 +64,19 @@ CREATE TABLE IF NOT EXISTS users (
   password_reset_token VARCHAR(255),
   password_reset_expires DATETIME,
   last_login_at DATETIME,
+  -- Bumped to revoke every outstanding JWT for this user. src/middlewares/auth.ts
+  -- rejects a token whose payload tokenVersion is below this value, so the column
+  -- is load-bearing for session revocation. It was declared in src/models/User.ts
+  -- but missing here, which made every query against this table fail outright.
+  token_version INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Incremented to revoke all existing tokens',
   login_count INT UNSIGNED NOT NULL DEFAULT 0 INVISIBLE COMMENT 'Track login frequency',
   row_version INT UNSIGNED NOT NULL DEFAULT 0 INVISIBLE COMMENT 'Optimistic locking',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-  INDEX idx_users_uuid (uuid),
+  -- UNIQUE because the uuid is now defaulted rather than derived from the
+  -- primary key, so uniqueness is no longer implied by construction.
+  UNIQUE KEY idx_users_uuid (uuid),
   INDEX idx_users_email (email),
   INDEX idx_users_verification_token (email_verification_token),
   INDEX idx_users_reset_token (password_reset_token),
@@ -345,7 +368,11 @@ CREATE TABLE IF NOT EXISTS app_settings (
 
 CREATE TABLE IF NOT EXISTS community_ammo (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  submitted_by BIGINT UNSIGNED NOT NULL,
+  -- Nullable so the FK's ON DELETE SET NULL is legal (MySQL ERROR 1830 when a
+  -- NOT NULL column is the target of SET NULL). Nullable is also the correct
+  -- semantics for a crowdsourced table: a submission outlives its submitter's
+  -- account and becomes anonymous rather than being deleted with them.
+  submitted_by BIGINT UNSIGNED,
   manufacturer VARCHAR(255) NOT NULL,
   product_name VARCHAR(255) NOT NULL,
   caliber VARCHAR(100) NOT NULL,
@@ -479,7 +506,7 @@ WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE';
 --    - Faster string operations than utf8mb4_unicode_ci
 --
 -- 2. Generated Columns (STORED)
---    - users.uuid: Auto-generated UUID from numeric ID
+--    - users.uuid: Random UUID v4 (DEFAULT expression, not derived from the ID)
 --    - dope_logs.distance_yards: Normalized distance for cross-unit queries
 --    - dope_logs.hit_percentage: Automatic accuracy calculation
 --    - target_images.shot_count: Extracted from JSON array length

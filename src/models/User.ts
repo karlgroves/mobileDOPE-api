@@ -14,7 +14,7 @@ import sequelize from '../config/database';
 
 interface UserAttributes {
   id: number;
-  uuid: string; // Generated column
+  uuid: string; // Random UUID v4; defaulted by the model, backstopped by the DB
   email: string;
   password_hash: string;
   name?: string;
@@ -46,23 +46,23 @@ type UserCreationAttributes = Optional<
 >;
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
-  public id!: number;
-  public uuid!: string;
-  public email!: string;
-  public password_hash!: string;
-  public name?: string;
-  public is_active!: boolean;
-  public is_verified!: boolean;
-  public email_verification_token?: string;
-  public email_verification_expires?: Date;
-  public password_reset_token?: string;
-  public password_reset_expires?: Date;
-  public last_login_at?: Date;
-  public token_version!: number;
-  public login_count!: number;
-  public row_version!: number;
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
+  declare id: number;
+  declare uuid: string;
+  declare email: string;
+  declare password_hash: string;
+  declare name: string | undefined;
+  declare is_active: boolean;
+  declare is_verified: boolean;
+  declare email_verification_token: string | undefined;
+  declare email_verification_expires: Date | undefined;
+  declare password_reset_token: string | undefined;
+  declare password_reset_expires: Date | undefined;
+  declare last_login_at: Date | undefined;
+  declare token_version: number;
+  declare login_count: number;
+  declare row_version: number;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
 
   /**
    * Hash password before saving
@@ -177,10 +177,16 @@ User.init(
       primaryKey: true,
     },
     uuid: {
-      type: DataTypes.CHAR(36),
+      type: DataTypes.UUID,
       allowNull: false,
-      // Generated column - calculated by database
-      comment: 'UUID v4 generated from ID for external API use',
+      unique: true,
+      // Supplied here rather than by the database. The schema carries a
+      // RANDOM_BYTES-based DEFAULT as a backstop for inserts that bypass the
+      // model, but Sequelize needs its own default or it sends NULL into a
+      // NOT NULL column. This was previously a database-generated column; that
+      // definition was illegal and never loaded, so nothing populated it.
+      defaultValue: DataTypes.UUIDV4,
+      comment: 'Random UUID v4 for external API use',
     },
     email: {
       type: DataTypes.STRING(255),
@@ -265,7 +271,9 @@ User.init(
     timestamps: true,
     underscored: true,
     indexes: [
-      { fields: ['uuid'] },
+      // UNIQUE to match the schema: the value is defaulted now, not derived
+      // from the primary key, so uniqueness is no longer implied.
+      { fields: ['uuid'], unique: true },
       { fields: ['email'], unique: true },
       { fields: ['email_verification_token'] },
       { fields: ['password_reset_token'] },
