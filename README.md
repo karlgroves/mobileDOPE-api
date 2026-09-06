@@ -121,7 +121,8 @@ api/
 - `npm run format:check` - Check code formatting
 - `npm run markdownlint` - Lint Markdown (`markdownlint-cli2`)
 - `npm run dupes` - Detect copy/paste duplication (`jscpd`)
-- `npm run check` - Lint + typecheck + markdownlint + dupes (parallel)
+- `npm run knip` - Find unused files, exports and dependencies (`knip`)
+- `npm run check` - Lint + typecheck + markdownlint + dupes + knip (parallel)
 - `npm run check:all` - Full local gate: `check` + `format:check` + tests
 - `npm run license:check` - Verify production dependency licenses
 - `npm run security:audit` - `npm audit` for production dependencies
