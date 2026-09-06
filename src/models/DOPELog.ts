@@ -42,30 +42,30 @@ type DOPELogCreationAttributes = Optional<
 
 // prettier-ignore
 class DOPELog extends Model<DOPELogAttributes, DOPELogCreationAttributes> implements DOPELogAttributes {
-  public id!: number;
-  public user_id!: number;
-  public rifle_id!: number;
-  public ammo_id!: number;
-  public environment_id!: number;
-  public distance!: number;
-  public distance_unit!: 'yards' | 'meters';
-  public distance_yards!: number;
-  public elevation_correction!: number;
-  public windage_correction!: number;
-  public correction_unit!: 'MIL' | 'MOA';
-  public target_type!: 'steel' | 'paper' | 'vital_zone' | 'other';
-  public group_size?: number;
-  public hit_count?: number;
-  public shot_count?: number;
-  public hit_percentage?: number;
-  public notes?: string;
-  public readonly timestamp!: Date;
+  declare id: number;
+  declare user_id: number;
+  declare rifle_id: number;
+  declare ammo_id: number;
+  declare environment_id: number;
+  declare distance: number;
+  declare distance_unit: 'yards' | 'meters';
+  declare distance_yards: number;
+  declare elevation_correction: number;
+  declare windage_correction: number;
+  declare correction_unit: 'MIL' | 'MOA';
+  declare target_type: 'steel' | 'paper' | 'vital_zone' | 'other';
+  declare group_size: number | undefined;
+  declare hit_count: number | undefined;
+  declare shot_count: number | undefined;
+  declare hit_percentage: number | undefined;
+  declare notes: string | undefined;
+  declare readonly timestamp: Date;
 
   // Associations
-  public readonly user?: User;
-  public readonly rifle?: RifleProfile;
-  public readonly ammo?: AmmoProfile;
-  public readonly environment?: EnvironmentSnapshot;
+  declare readonly user: User | undefined;
+  declare readonly rifle: RifleProfile | undefined;
+  declare readonly ammo: AmmoProfile | undefined;
+  declare readonly environment: EnvironmentSnapshot | undefined;
 
   public static override associations: {
     user: Association<DOPELog, User>;

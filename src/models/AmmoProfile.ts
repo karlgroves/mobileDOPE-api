@@ -38,26 +38,26 @@ type AmmoProfileCreationAttributes = Optional<
 
 // prettier-ignore
 class AmmoProfile extends Model<AmmoProfileAttributes, AmmoProfileCreationAttributes> implements AmmoProfileAttributes {
-  public id!: number;
-  public user_id!: number;
-  public rifle_id!: number;
-  public name!: string;
-  public manufacturer!: string;
-  public bullet_weight!: number;
-  public bullet_type!: string;
-  public ballistic_coefficient_g1!: number;
-  public ballistic_coefficient_g7!: number;
-  public muzzle_velocity!: number;
-  public powder_type?: string;
-  public powder_weight?: number;
-  public lot_number?: string;
-  public notes?: string;
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
+  declare id: number;
+  declare user_id: number;
+  declare rifle_id: number;
+  declare name: string;
+  declare manufacturer: string;
+  declare bullet_weight: number;
+  declare bullet_type: string;
+  declare ballistic_coefficient_g1: number;
+  declare ballistic_coefficient_g7: number;
+  declare muzzle_velocity: number;
+  declare powder_type: string | undefined;
+  declare powder_weight: number | undefined;
+  declare lot_number: string | undefined;
+  declare notes: string | undefined;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
 
   // Associations
-  public readonly user?: User;
-  public readonly rifle?: RifleProfile;
+  declare readonly user: User | undefined;
+  declare readonly rifle: RifleProfile | undefined;
 
   public static override associations: {
     user: Association<AmmoProfile, User>;

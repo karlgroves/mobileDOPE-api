@@ -33,21 +33,21 @@ type EnvironmentSnapshotCreationAttributes = Optional<
 
 // prettier-ignore
 class EnvironmentSnapshot extends Model<EnvironmentSnapshotAttributes, EnvironmentSnapshotCreationAttributes> implements EnvironmentSnapshotAttributes {
-  public id!: number;
-  public user_id!: number;
-  public temperature!: number;
-  public humidity!: number;
-  public pressure!: number;
-  public altitude!: number;
-  public density_altitude!: number;
-  public wind_speed!: number;
-  public wind_direction!: number;
-  public latitude?: number;
-  public longitude?: number;
-  public readonly timestamp!: Date;
+  declare id: number;
+  declare user_id: number;
+  declare temperature: number;
+  declare humidity: number;
+  declare pressure: number;
+  declare altitude: number;
+  declare density_altitude: number;
+  declare wind_speed: number;
+  declare wind_direction: number;
+  declare latitude: number | undefined;
+  declare longitude: number | undefined;
+  declare readonly timestamp: Date;
 
   // Associations
-  public readonly user?: User;
+  declare readonly user: User | undefined;
 
   public static override associations: {
     user: Association<EnvironmentSnapshot, User>;
