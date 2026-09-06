@@ -107,3 +107,12 @@ jobs:
       - name: Build
         if: steps.detect.outputs.type == 'node'
         run: npm run build --if-present
+
+      # Blocking, and only safe to make blocking now: this exited 1 on develop
+      # until the production advisories were cleared (mysql2 auth-plugin
+      # downgrade, brace-expansion DoS). Adding it earlier would have made CI red
+      # for everyone. Production dependencies only, high and above -- dev-tree
+      # advisories are covered separately by `npm run security:osv`.
+      - name: Security audit (production dependencies)
+        if: steps.detect.outputs.type == 'node'
+        run: npm run security:audit --if-present
