@@ -29,6 +29,14 @@ if (isProduction) {
 }
 
 // Database connection parameters
+//
+// TLS is enabled for production below via `dialectOptions.ssl`. Development and
+// test connect to a local container over the loopback interface, where requiring
+// TLS would mean shipping a certificate for no gain. Suppressed at this site
+// rather than repo-wide, so a genuinely untrusted connection elsewhere still
+// trips the rule. The directive has to sit on the line immediately above the
+// match -- semgrep does not look further back than one line.
+// nosemgrep: ajinabraham.njsscan.database.sequelize_tls.sequelize_tls
 const dbConfig: Options = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '3306', 10),
