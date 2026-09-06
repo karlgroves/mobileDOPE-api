@@ -29,6 +29,14 @@ if (isProduction) {
 }
 
 // Database connection parameters
+//
+// TLS is enabled for production below via `dialectOptions.ssl`. Development and
+// test connect to a local container over the loopback interface, where requiring
+// TLS would mean shipping a certificate for no gain. Suppressed at this site
+// rather than repo-wide, so a genuinely untrusted connection elsewhere still
+// trips the rule. The directive has to sit on the line immediately above the
+// match -- semgrep does not look further back than one line.
+// nosemgrep: ajinabraham.njsscan.database.sequelize_tls.sequelize_tls
 const dbConfig: Options = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '3306', 10),
@@ -135,24 +143,6 @@ export async function closeConnection(): Promise<void> {
     logger.info('✓ Database connection closed');
   } catch (error) {
     logger.error({ err: error }, '✗ Error closing database connection');
-  }
-}
-
-/**
- * Sync all models with database (development only)
- * WARNING: This will drop tables if force is true
- */
-export async function syncDatabase(force = false): Promise<void> {
-  if (isProduction && force) {
-    throw new Error('Cannot force sync database in production');
-  }
-
-  try {
-    await sequelize.sync({ force, alter: !force && !isProduction });
-    logger.info(`✓ Database synced ${force ? '(forced)' : '(altered)'}`);
-  } catch (error) {
-    logger.error({ err: error }, '✗ Error syncing database');
-    throw error;
   }
 }
 

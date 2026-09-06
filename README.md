@@ -11,7 +11,7 @@ The Mobile DOPE API provides:
 
 ## Technology Stack
 
-- **Runtime**: Node.js 22 (LTS)
+- **Runtime**: Node.js 24.15+ (see `.nvmrc`)
 - **Framework**: Express.js
 - **Language**: TypeScript (strict mode)
 - **Database**: MySQL 8.4
@@ -25,7 +25,7 @@ The Mobile DOPE API provides:
 ### Prerequisites
 
 - Docker Desktop installed
-- Node.js 22+ (optional, for local development without Docker)
+- Node.js 24.15+ (optional, for local development without Docker) — `nvm use` reads `.nvmrc`
 - Git
 
 > **Note:** `.npmrc` sets `engine-strict=true`, so `npm install` will **fail** on
@@ -117,11 +117,13 @@ api/
 
 - `npm run lint` - Run ESLint (flat config, `eslint.config.mjs`)
 - `npm run lint:fix` - Fix ESLint issues
+- `npm run lint:ci` - Run ESLint with the warning count held at its current ceiling (used by CI)
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check code formatting
 - `npm run markdownlint` - Lint Markdown (`markdownlint-cli2`)
 - `npm run dupes` - Detect copy/paste duplication (`jscpd`)
-- `npm run check` - Lint + typecheck + markdownlint + dupes (parallel)
+- `npm run knip` - Find unused files, exports and dependencies (`knip`)
+- `npm run check` - Lint + typecheck + markdownlint + dupes + knip (parallel)
 - `npm run check:all` - Full local gate: `check` + `format:check` + tests
 - `npm run license:check` - Verify production dependency licenses
 - `npm run security:audit` - `npm audit` for production dependencies

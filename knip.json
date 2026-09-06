@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["src/utils/**/*.ts", "src/middlewares/**/*.ts"],
+  "project": ["src/**/*.ts", "tests/**/*.ts"],
+  "ignoreDependencies": ["mysql2", "tsconfig-paths"],
+  "ignoreBinaries": ["lychee", "osv-scanner", "semgrep", "gitleaks", "docker-compose"],
+  "ignoreExportsUsedInFile": true
+}
