@@ -37,25 +37,25 @@ type RifleProfileCreationAttributes = Optional<
 
 // prettier-ignore
 class RifleProfile extends Model<RifleProfileAttributes, RifleProfileCreationAttributes> implements RifleProfileAttributes {
-  public id!: number;
-  public user_id!: number;
-  public name!: string;
-  public caliber!: string;
-  public barrel_length!: number;
-  public twist_rate!: string;
-  public zero_distance!: number;
-  public optic_manufacturer!: string;
-  public optic_model!: string;
-  public reticle_type!: string;
-  public click_value_type!: 'MIL' | 'MOA';
-  public click_value!: number;
-  public scope_height!: number;
-  public notes?: string;
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
+  declare id: number;
+  declare user_id: number;
+  declare name: string;
+  declare caliber: string;
+  declare barrel_length: number;
+  declare twist_rate: string;
+  declare zero_distance: number;
+  declare optic_manufacturer: string;
+  declare optic_model: string;
+  declare reticle_type: string;
+  declare click_value_type: 'MIL' | 'MOA';
+  declare click_value: number;
+  declare scope_height: number;
+  declare notes: string | undefined;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
 
   // Associations
-  public readonly user?: User;
+  declare readonly user: User | undefined;
 
   public static override associations: {
     user: Association<RifleProfile, User>;
