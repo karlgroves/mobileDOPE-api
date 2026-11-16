@@ -123,6 +123,7 @@ api/
 - `npm run markdownlint` - Lint Markdown (`markdownlint-cli2`)
 - `npm run dupes` - Detect copy/paste duplication (`jscpd`)
 - `npm run knip` - Find unused files, exports and dependencies (`knip`)
+- `npm run lint:workflows` - Lint the GitHub Actions workflows (`actionlint`, plus shellcheck on `run:` blocks when installed)
 - `npm run check` - Lint + typecheck + markdownlint + dupes + knip (parallel)
 - `npm run check:all` - Full local gate: `check` + `format:check` + tests
 - `npm run license:check` - Verify production dependency licenses
@@ -134,7 +135,8 @@ name differs from the package name).
 
 The following require optional binaries installed via `scripts/bootstrap.sh`
 (`security:secrets` → gitleaks, `security:osv` → osv-scanner,
-`security:semgrep` → semgrep, `links` → lychee).
+`security:semgrep` → semgrep, `links` → lychee,
+`lint:workflows` → actionlint).
 
 ### Testing
 
